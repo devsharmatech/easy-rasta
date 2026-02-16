@@ -1,0 +1,58 @@
+
+> easy-rasta@0.1.0 build
+> next build
+
+▲ Next.js 16.1.6 (Turbopack)
+- Environments: .env.local
+
+  Creating an optimized production build ...
+✓ Compiled successfully in 6.1s
+  Running TypeScript ...
+  Collecting page data using 3 workers ...
+  Generating static pages using 3 workers (0/32) ...
+  Generating static pages using 3 workers (8/32) 
+  Generating static pages using 3 workers (16/32) 
+  Generating static pages using 3 workers (24/32) 
+✓ Generating static pages using 3 workers (32/32) in 290.0ms
+  Finalizing page optimization ...
+
+Route (app)
+┌ ○ /_not-found
+├ ○ /admin/amenities
+├ ○ /admin/businesses
+├ ○ /admin/dashboard
+├ ○ /admin/events
+├ ○ /admin/login
+├ ○ /admin/reviews
+├ ○ /admin/riders
+├ ○ /admin/vendors
+├ ○ /admin/xp-rules
+├ ƒ /api/admin/amenities
+├ ƒ /api/admin/businesses
+├ ƒ /api/admin/events
+├ ƒ /api/admin/reviews
+├ ƒ /api/admin/riders
+├ ƒ /api/admin/stats
+├ ƒ /api/admin/vendors
+├ ƒ /api/admin/xp-rules
+├ ƒ /api/auth/admin/login
+├ ƒ /api/auth/otp/send
+├ ƒ /api/auth/otp/verify
+├ ƒ /api/events
+├ ƒ /api/events/[id]/join
+├ ƒ /api/reviews
+├ ƒ /api/rider/garage
+├ ƒ /api/rider/profile
+├ ƒ /api/rider/rides
+├ ƒ /api/user/device-token
+├ ƒ /api/vendor/business
+├ ƒ /api/vendor/offers
+├ ƒ /api/vendor/profile
+└ ƒ /api/vendor/services
+
+
+ƒ Proxy (Middleware)
+
+○  (Static)   prerendered as static content
+ƒ  (Dynamic)  server-rendered on demand
+

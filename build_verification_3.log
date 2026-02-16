@@ -1,0 +1,97 @@
+
+> easy-rasta@0.1.0 build
+> next build
+
+▲ Next.js 16.1.6 (Turbopack)
+- Environments: .env.local
+
+  Creating an optimized production build ...
+
+> Build error occurred
+Error: Turbopack build failed with 3 errors:
+./components/admin/ImageUpload.jsx:12:1
+Module not found: Can't resolve '@/components/ui/slider'
+[0m [90m 10 |[39m [36mimport[39m { [33mLabel[39m } [36mfrom[39m [32m'@/components/ui/label'[39m
+ [90m 11 |[39m [36mimport[39m { [33mTabs[39m[33m,[39m [33mTabsContent[39m[33m,[39m [33mTabsList[39m[33m,[39m [33mTabsTrigger[39m } [36mfrom[39m [32m'@/components/ui/tabs'[39m
+[31m[1m>[22m[39m[90m 12 |[39m [36mimport[39m { [33mSlider[39m } [36mfrom[39m [32m'@/components/ui/slider'[39m
+ [90m    |[39m [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m 13 |[39m [36mimport[39m { [33mDialog[39m[33m,[39m [33mDialogContent[39m[33m,[39m [33mDialogHeader[39m[33m,[39m [33mDialogTitle[39m[33m,[39m [33mDialogFooter[39m } [36mfrom[39m [32m'@/components/ui/dialog'[39m
+ [90m 14 |[39m [36mimport[39m { [33mUpload[39m[33m,[39m [33mX[39m[33m,[39m [33mCheck[39m[33m,[39m [33mImage[39m [36mas[39m [33mImageIcon[39m[33m,[39m [33mLink[39m [36mas[39m [33mLinkIcon[39m[33m,[39m [33mCrop[39m [36mas[39m [33mCropIcon[39m } [36mfrom[39m [32m'lucide-react'[39m
+ [90m 15 |[39m [36mimport[39m { getCroppedImg } [36mfrom[39m [32m'@/lib/cropUtils'[39m [90m// Helper we need to create[39m[0m
+
+Import map: aliased to relative './components/ui/slider' inside of [project]/
+
+
+Import traces:
+  Client Component Browser:
+    ./components/admin/ImageUpload.jsx [Client Component Browser]
+    ./app/admin/products/page.jsx [Client Component Browser]
+    ./app/admin/products/page.jsx [Server Component]
+
+  Client Component SSR:
+    ./components/admin/ImageUpload.jsx [Client Component SSR]
+    ./app/admin/products/page.jsx [Client Component SSR]
+    ./app/admin/products/page.jsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+./components/admin/ImageUpload.jsx:11:1
+Module not found: Can't resolve '@/components/ui/tabs'
+[0m [90m  9 |[39m [36mimport[39m { [33mInput[39m } [36mfrom[39m [32m'@/components/ui/input'[39m
+ [90m 10 |[39m [36mimport[39m { [33mLabel[39m } [36mfrom[39m [32m'@/components/ui/label'[39m
+[31m[1m>[22m[39m[90m 11 |[39m [36mimport[39m { [33mTabs[39m[33m,[39m [33mTabsContent[39m[33m,[39m [33mTabsList[39m[33m,[39m [33mTabsTrigger[39m } [36mfrom[39m [32m'@/components/ui/tabs'[39m
+ [90m    |[39m [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m 12 |[39m [36mimport[39m { [33mSlider[39m } [36mfrom[39m [32m'@/components/ui/slider'[39m
+ [90m 13 |[39m [36mimport[39m { [33mDialog[39m[33m,[39m [33mDialogContent[39m[33m,[39m [33mDialogHeader[39m[33m,[39m [33mDialogTitle[39m[33m,[39m [33mDialogFooter[39m } [36mfrom[39m [32m'@/components/ui/dialog'[39m
+ [90m 14 |[39m [36mimport[39m { [33mUpload[39m[33m,[39m [33mX[39m[33m,[39m [33mCheck[39m[33m,[39m [33mImage[39m [36mas[39m [33mImageIcon[39m[33m,[39m [33mLink[39m [36mas[39m [33mLinkIcon[39m[33m,[39m [33mCrop[39m [36mas[39m [33mCropIcon[39m } [36mfrom[39m [32m'lucide-react'[39m[0m
+
+Import map: aliased to relative './components/ui/tabs' inside of [project]/
+
+
+Import traces:
+  Client Component Browser:
+    ./components/admin/ImageUpload.jsx [Client Component Browser]
+    ./app/admin/products/page.jsx [Client Component Browser]
+    ./app/admin/products/page.jsx [Server Component]
+
+  Client Component SSR:
+    ./components/admin/ImageUpload.jsx [Client Component SSR]
+    ./app/admin/products/page.jsx [Client Component SSR]
+    ./app/admin/products/page.jsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+./components/admin/ImageUpload.jsx:4:1
+Module not found: Can't resolve 'react-dropzone'
+[0m [90m 2 |[39m
+ [90m 3 |[39m [36mimport[39m { useState[33m,[39m useCallback } [36mfrom[39m [32m'react'[39m
+[31m[1m>[22m[39m[90m 4 |[39m [36mimport[39m { useDropzone } [36mfrom[39m [32m'react-dropzone'[39m
+ [90m   |[39m [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m 5 |[39m [36mimport[39m [33mCropper[39m [36mfrom[39m [32m'react-easy-crop'[39m
+ [90m 6 |[39m [36mimport[39m { toast } [36mfrom[39m [32m'sonner'[39m
+ [90m 7 |[39m [36mimport[39m { supabaseAdmin } [36mfrom[39m [32m'@/lib/supabaseClient'[39m [90m// Using admin client for upload if needed, or public[39m[0m
+
+
+
+Import traces:
+  Client Component Browser:
+    ./components/admin/ImageUpload.jsx [Client Component Browser]
+    ./app/admin/products/page.jsx [Client Component Browser]
+    ./app/admin/products/page.jsx [Server Component]
+
+  Client Component SSR:
+    ./components/admin/ImageUpload.jsx [Client Component SSR]
+    ./app/admin/products/page.jsx [Client Component SSR]
+    ./app/admin/products/page.jsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+    at <unknown> (./components/admin/ImageUpload.jsx:12:1)
+    at <unknown> (https://nextjs.org/docs/messages/module-not-found)
+    at <unknown> (./components/admin/ImageUpload.jsx:11:1)
+    at <unknown> (https://nextjs.org/docs/messages/module-not-found)
+    at <unknown> (./components/admin/ImageUpload.jsx:4:1)
+    at <unknown> (https://nextjs.org/docs/messages/module-not-found)
