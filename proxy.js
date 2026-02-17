@@ -15,7 +15,7 @@ export async function proxy(request) {
     const token = request.headers.get('Authorization')?.split(' ')[1]
 
     // Public paths
-    const publicPaths = ['/api/auth/admin/login', '/api/auth/otp/send', '/api/auth/otp/verify', '/_next', '/favicon.ico']
+    const publicPaths = ['/api/auth/admin/login', '/api/auth/otp/send', '/api/auth/otp/verify', '/_next', '/favicon.ico', '/api/contact', '/api/contact-message']
     if (publicPaths.some(path => request.nextUrl.pathname.startsWith(path))) {
         return NextResponse.next()
     }

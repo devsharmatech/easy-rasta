@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 import Link from 'next/link'
-import { LogOut, LayoutDashboard, Users, Store, Bike, Calendar, ShieldCheck, Star, Settings, Menu, Package, ShoppingCart, ChevronDown, Bell } from 'lucide-react'
+import { LogOut, LayoutDashboard, Users, Store, Bike, Calendar, ShieldCheck, Star, Settings, Menu, Package, ShoppingCart, ChevronDown, Bell, Mail } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet'
@@ -73,6 +73,7 @@ export default function AdminLayout({ children }) {
                 <SidebarItem href="/admin/products" icon={Package} label="Products" active={pathname.startsWith('/admin/products')} />
                 <SidebarItem href="/admin/orders" icon={ShoppingCart} label="Orders" active={pathname === '/admin/orders'} />
                 <SidebarItem href="/admin/events" icon={Calendar} label="Events" active={pathname === '/admin/events'} />
+                <SidebarItem href="/admin/messages" icon={Mail} label="Messages" active={pathname === '/admin/messages'} />
 
                 <div className="px-6 py-3 text-xs font-bold text-white/50 uppercase tracking-widest mt-2">System</div>
                 <SidebarItem href="/admin/amenities" icon={Settings} label="Amenities" active={pathname === '/admin/amenities'} />
