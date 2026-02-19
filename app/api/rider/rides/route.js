@@ -88,7 +88,7 @@ export async function PUT(request) {
                 .eq('id', ride_id)
                 .eq('status', 'active')
                 .select()
-                .single()
+                .maybeSingle()
 
             if (rideError) throw rideError
 
