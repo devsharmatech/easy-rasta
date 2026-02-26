@@ -574,7 +574,9 @@ CREATE OR REPLACE FUNCTION get_nearby_businesses(
     p_max_lat numeric DEFAULT NULL,
     p_min_long numeric DEFAULT NULL,
     p_max_long numeric DEFAULT NULL,
-    p_sort_by_price boolean DEFAULT false
+    p_sort_by_price boolean DEFAULT false,
+    p_has_toilet boolean DEFAULT NULL,
+    p_restroom_type restroom_type DEFAULT NULL
 )
 RETURNS TABLE (
     id uuid,
@@ -587,7 +589,9 @@ RETURNS TABLE (
     close_time time,
     distance double precision,
     min_service_price numeric,
-    is_open boolean
+    is_open boolean,
+    restroom_available boolean,
+    restroom_type restroom_type
 ) AS $$
 BEGIN
     RETURN QUERY
@@ -605,11 +609,15 @@ BEGIN
             WHEN b.open_time IS NULL OR b.close_time IS NULL THEN true
             WHEN b.open_time <= b.close_time THEN (current_time::time BETWEEN b.open_time AND b.close_time)
             ELSE (current_time::time >= b.open_time OR current_time::time <= b.close_time)
-        END) as is_open
+        END) as is_open,
+        b.restroom_available,
+        b.restroom_type
     FROM vendor_businesses b
     LEFT JOIN business_prices bp ON b.id = bp.business_id
     WHERE b.is_active = true AND b.deleted_at IS NULL
     AND (p_category IS NULL OR b.category = p_category)
+    AND (p_has_toilet IS NULL OR b.restroom_available = p_has_toilet)
+    AND (p_restroom_type IS NULL OR b.restroom_type = p_restroom_type)
     AND (p_min_lat IS NULL OR b.latitude BETWEEN p_min_lat AND p_max_lat)
     AND (p_min_long IS NULL OR b.longitude BETWEEN p_min_long AND p_max_long)
     AND (6371 * acos(cos(radians(p_lat)) * cos(radians(b.latitude)) * cos(radians(b.longitude) - radians(p_long)) + sin(radians(p_lat)) * sin(radians(b.latitude)))) <= p_radius_km

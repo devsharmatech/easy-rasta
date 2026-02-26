@@ -11,6 +11,10 @@ export async function GET(request) {
         const category = searchParams.get('category') // fuel, food, etc.
         const sortByPrice = searchParams.get('sort_by_price') === 'true'
 
+        const hasToiletParam = searchParams.get('has_toilet')
+        const hasToilet = hasToiletParam === 'true' ? true : (hasToiletParam === 'false' ? false : null)
+        const toiletType = searchParams.get('toilet_type') // 'free' or 'paid'
+
         // Map bounds filtering
         const minLat = searchParams.get('min_lat') ? parseFloat(searchParams.get('min_lat')) : null
         const maxLat = searchParams.get('max_lat') ? parseFloat(searchParams.get('max_lat')) : null
@@ -31,7 +35,9 @@ export async function GET(request) {
             p_max_lat: maxLat,
             p_min_long: minLong,
             p_max_long: maxLong,
-            p_sort_by_price: sortByPrice
+            p_sort_by_price: sortByPrice,
+            p_has_toilet: hasToilet,
+            p_restroom_type: toiletType || null
         })
 
         if (error) throw error
