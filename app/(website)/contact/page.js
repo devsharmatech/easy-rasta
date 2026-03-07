@@ -32,8 +32,8 @@ export default function ContactPage() {
                                     </div>
                                     <div>
                                         <h3 className="font-semibold text-[#1a1a1a] mb-1">Email Us</h3>
-                                        <a href="mailto:support@easyrasta.com" className="text-[#666666] hover:text-[#CE5612] transition-colors">
-                                            support@easyrasta.com
+                                        <a href="mailto:devices@easyrasta.in" className="text-[#666666] hover:text-[#CE5612] transition-colors">
+                                            devices@easyrasta.in
                                         </a>
                                     </div>
                                 </div>
@@ -44,9 +44,14 @@ export default function ContactPage() {
                                     </div>
                                     <div>
                                         <h3 className="font-semibold text-[#1a1a1a] mb-1">Call Us</h3>
-                                        <a href="tel:+911234567890" className="text-[#666666] hover:text-[#CE5612] transition-colors">
-                                            +91 12345 67890
-                                        </a>
+                                        <div className="flex flex-col gap-1">
+                                            <a href="tel:+919632380747" className="text-[#666666] hover:text-[#CE5612] transition-colors">
+                                                +91 9632380747
+                                            </a>
+                                            <a href="tel:+919902966990" className="text-[#666666] hover:text-[#CE5612] transition-colors">
+                                                +91 9902966990
+                                            </a>
+                                        </div>
                                     </div>
                                 </div>
 
@@ -55,11 +60,10 @@ export default function ContactPage() {
                                         <MapPin className="w-6 h-6 text-[#CE5612]" />
                                     </div>
                                     <div>
-                                        <h3 className="font-semibold text-[#1a1a1a] mb-1">Visit Us</h3>
+                                        <h3 className="font-semibold text-[#1a1a1a] mb-1">Entity Details</h3>
                                         <p className="text-[#666666]">
-                                            123 Tech Park, Sector 5<br />
-                                            Mumbai, Maharashtra 400001<br />
-                                            India
+                                            DETOUR SERVICES INDIA PRIVATE LIMITED<br />
+                                            Unit of Easy Rasta
                                         </p>
                                     </div>
                                 </div>
