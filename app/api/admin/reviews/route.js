@@ -41,6 +41,7 @@ export async function GET(request) {
                     id: r.vendor_reviews.id,
                     rating: r.vendor_reviews.rating,
                     review: r.vendor_reviews.review,
+                    image_url: r.vendor_reviews.image_url,
                     business_name: r.vendor_reviews.vendor_businesses?.business_name,
                     reviewer_name: r.vendor_reviews.rider_profiles?.users?.full_name || 'Unknown',
                     reviewer_mobile: r.vendor_reviews.rider_profiles?.users?.mobile,

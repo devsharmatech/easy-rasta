@@ -46,6 +46,7 @@ export async function GET(request) {
             business_name: r.vendor_businesses?.business_name,
             rating: r.rating,
             review: r.review,
+            image_url: r.image_url,
             reviewer_name: r.rider_profiles?.users?.full_name || 'Anonymous',
             created_at: r.created_at
         }))

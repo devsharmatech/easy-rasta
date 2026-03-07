@@ -28,6 +28,9 @@ export default function AboutPage() {
                             <p className="text-[#666666] text-lg leading-relaxed mb-6">
                                 Easy Rasta was born from a simple frustration that every traveler knows too well - the lack of a comprehensive tool to manage travel expenses, find accurate fuel prices, and connect with fellow travelers.
                             </p>
+                            <p className="text-[#2F777B] text-base font-semibold mb-6">
+                                Easy Rasta, an unit of DETOUR SERVICES INDIA PRIVATE LIMITED
+                            </p>
                             <p className="text-[#666666] text-lg leading-relaxed mb-6">
                                 In 2024, a group of passionate travelers and tech enthusiasts came together with a vision to create the ultimate travel companion app. We wanted to build something that would make every journey smoother, more affordable, and more enjoyable.
                             </p>

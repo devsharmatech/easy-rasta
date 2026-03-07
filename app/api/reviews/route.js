@@ -18,8 +18,22 @@ export async function POST(request) {
 
         if (!riderProfile) return errorResponse('Rider profile not found', 404)
 
-        const body = await request.json()
-        const { business_id, rating, review } = body
+        const contentType = request.headers.get('content-type') || ''
+        let business_id, rating, review, image
+
+        if (contentType.includes('multipart/form-data')) {
+            const formData = await request.formData()
+            business_id = formData.get('business_id')
+            rating = formData.get('rating') ? parseInt(formData.get('rating')) : null
+            review = formData.get('review')
+            image = formData.get('image')
+        } else {
+            const body = await request.json()
+            business_id = body.business_id
+            rating = body.rating
+            review = body.review
+            image = body.image
+        }
 
         if (!business_id || !rating) {
             return errorResponse('business_id and rating are required', 400)
@@ -27,13 +41,38 @@ export async function POST(request) {
 
         if (rating < 1 || rating > 5) return errorResponse('Rating must be between 1 and 5', 400)
 
+        // Handle image upload if provided
+        let image_url = null
+        if (image && typeof image !== 'string' && image.size > 0) {
+            const ext = image.name.split('.').pop()
+            const fileName = `review-images/${user.user_id}_${Date.now()}.${ext}`
+
+            const buffer = Buffer.from(await image.arrayBuffer())
+
+            const { error: uploadError } = await supabaseAdmin.storage
+                .from('media')
+                .upload(fileName, buffer, {
+                    contentType: image.type,
+                    upsert: true
+                })
+
+            if (uploadError) throw uploadError
+
+            const { data: urlData } = supabaseAdmin.storage
+                .from('media')
+                .getPublicUrl(fileName)
+
+            image_url = urlData.publicUrl
+        }
+
         const { data, error } = await supabaseAdmin
             .from('vendor_reviews')
             .insert({
                 business_id,
                 rider_id: riderProfile.id,
                 rating,
-                review
+                review,
+                image_url
             })
             .select()
             .single()
@@ -70,6 +109,7 @@ export async function GET(request) {
             id: r.id,
             rating: r.rating,
             review: r.review,
+            image_url: r.image_url,
             reviewer_name: r.rider_profiles?.users?.full_name || 'Anonymous',
             created_at: r.created_at
         }))
@@ -96,15 +136,30 @@ export async function PUT(request) {
 
         if (!riderProfile) return errorResponse('Rider profile not found', 404)
 
-        const body = await request.json()
-        const { review_id, rating, review } = body
+        let review_id, rating, review, image
+        const contentType = request.headers.get('content-type') || ''
+
+        if (contentType.includes('multipart/form-data')) {
+            const formData = await request.formData()
+            review_id = formData.get('review_id')
+            rating = formData.get('rating') ? parseInt(formData.get('rating')) : undefined
+            review = formData.get('review')
+            // To delete an image, they might pass explicit string "null". Otherwise they pass a File.
+            image = formData.get('image')
+        } else {
+            const body = await request.json()
+            review_id = body.review_id
+            rating = body.rating
+            review = body.review
+            image = body.image
+        }
 
         if (!review_id) return errorResponse('review_id is required', 400)
 
         // Verify ownership
         const { data: existing } = await supabaseAdmin
             .from('vendor_reviews')
-            .select('id')
+            .select('id, image_url')
             .eq('id', review_id)
             .eq('rider_id', riderProfile.id)
             .single()
@@ -116,7 +171,32 @@ export async function PUT(request) {
             if (rating < 1 || rating > 5) return errorResponse('Rating must be between 1 and 5', 400)
             updateFields.rating = rating
         }
-        if (review !== undefined) updateFields.review = review
+        if (review !== undefined && review !== null) updateFields.review = review
+
+        // Handle Image Deletion or Update
+        if (image === 'null' || image === null) {
+            updateFields.image_url = null
+        } else if (image && typeof image !== 'string' && image.size > 0) {
+            const ext = image.name.split('.').pop()
+            const fileName = `review-images/${user.user_id}_${Date.now()}.${ext}`
+
+            const buffer = Buffer.from(await image.arrayBuffer())
+
+            const { error: uploadError } = await supabaseAdmin.storage
+                .from('media')
+                .upload(fileName, buffer, {
+                    contentType: image.type,
+                    upsert: true
+                })
+
+            if (uploadError) throw uploadError
+
+            const { data: urlData } = supabaseAdmin.storage
+                .from('media')
+                .getPublicUrl(fileName)
+
+            updateFields.image_url = urlData.publicUrl
+        }
 
         if (Object.keys(updateFields).length === 0) {
             return errorResponse('Nothing to update', 400)

@@ -273,6 +273,7 @@ CREATE TABLE vendor_reviews (
     rating int CHECK (rating BETWEEN 1 AND 5),
     review text,
     vendor_reply text,
+    image_url text,
     created_at timestamptz DEFAULT now()
 );
 

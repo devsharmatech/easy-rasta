@@ -43,8 +43,8 @@ export async function GET(request, context) {
 
         // Fetch top recent reviews
         const { data: reviews } = await supabaseAdmin
-            .from('reviews')
-            .select('id, rating, comment, created_at, users:user_id(full_name, profile_image_url)')
+            .from('vendor_reviews')
+            .select('id, rating, review, image_url, created_at, rider_profiles(users(full_name, profile_image_url))')
             .eq('business_id', id)
             .order('created_at', { ascending: false })
             .limit(10)
@@ -53,7 +53,7 @@ export async function GET(request, context) {
         let avg_rating = '0.0'
         let review_count = 0
         const { data: allReviews } = await supabaseAdmin
-            .from('reviews')
+            .from('vendor_reviews')
             .select('rating')
             .eq('business_id', id)
 
@@ -65,13 +65,22 @@ export async function GET(request, context) {
 
         const formattedAmenities = (amenities || []).map(a => a.amenities).filter(Boolean)
 
+        const formattedReviews = (reviews || []).map(r => ({
+            id: r.id,
+            rating: r.rating,
+            comment: r.review, // map 'review' to 'comment' for frontend compatibility if needed
+            image_url: r.image_url,
+            created_at: r.created_at,
+            users: r.rider_profiles?.users
+        }))
+
         return successResponse('Business details fetched successfully', {
             ...business,
             avg_rating,
             review_count,
             services: services || [],
             amenities: formattedAmenities,
-            recent_reviews: reviews || []
+            recent_reviews: formattedReviews
         })
 
     } catch (err) {
