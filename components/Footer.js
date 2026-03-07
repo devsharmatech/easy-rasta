@@ -157,9 +157,9 @@ export default function Footer() {
                         </p>
                     </div>
                     <div className="flex items-center gap-6 text-white/50 text-sm">
-                        <a href="mailto:support@easyrasta.in" className="flex items-center gap-1.5 hover:text-[#F7AA29] transition-colors">
+                        <a href="mailto:devices@easyrasta.in" className="flex items-center gap-1.5 hover:text-[#F7AA29] transition-colors">
                             <Mail className="w-3.5 h-3.5" />
-                            support@easyrasta.in
+                            devices@easyrasta.in
                         </a>
                     </div>
                 </div>
