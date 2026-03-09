@@ -212,6 +212,69 @@ CREATE TABLE vehicle_fuel_logs (
     created_at timestamptz DEFAULT now()
 );
 
+-- ====================================================
+-- GLOBAL FUEL PRICES & MAP CACHING
+-- ====================================================
+CREATE TABLE fuel_cities (
+    id varchar PRIMARY KEY, -- RapidAPI cityId
+    name varchar NOT NULL,
+    state_name varchar,
+    created_at timestamptz DEFAULT now()
+);
+
+CREATE TABLE fuel_prices (
+    id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
+    country varchar DEFAULT 'India',
+    state varchar,
+    city varchar NOT NULL,
+    city_id varchar,
+    petrol_price numeric,
+    diesel_price numeric,
+    cng_price numeric,
+    updated_at timestamptz DEFAULT now(),
+    UNIQUE(city)
+);
+
+CREATE TABLE route_pumps_cache (
+    id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
+    origin_lat numeric NOT NULL,
+    origin_lng numeric NOT NULL,
+    dest_lat numeric,
+    dest_lng numeric,
+    route_hash varchar UNIQUE NOT NULL,
+    pumps_data jsonb NOT NULL,
+    created_at timestamptz DEFAULT now()
+);
+
+-- Persistent pump cache: stores every discovered station so we don't re-call Google
+CREATE TABLE discovered_pumps (
+    id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
+    place_id varchar UNIQUE NOT NULL,
+    name varchar NOT NULL,
+    latitude numeric NOT NULL,
+    longitude numeric NOT NULL,
+    address text,
+    rating numeric,
+    user_ratings_total int,
+    icon text,
+    icon_background_color varchar,
+    icon_mask_base_uri text,
+    photo_url text,
+    place_type varchar DEFAULT 'gas_station',
+    discovered_at timestamptz DEFAULT now(),
+    updated_at timestamptz DEFAULT now()
+);
+
+CREATE TABLE pump_reviews (
+    id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
+    place_id varchar NOT NULL,
+    rider_id uuid REFERENCES rider_profiles(id) ON DELETE CASCADE,
+    rating int NOT NULL CHECK (rating >= 1 AND rating <= 5),
+    review_text text,
+    created_at timestamptz DEFAULT now(),
+    UNIQUE(place_id, rider_id)
+);
+
 CREATE TABLE rides (
     id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
     rider_id uuid REFERENCES rider_profiles(id) ON DELETE CASCADE,
