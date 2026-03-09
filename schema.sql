@@ -179,6 +179,39 @@ CREATE TABLE vehicles (
     created_at timestamptz DEFAULT now()
 );
 
+CREATE TABLE vehicle_documents (
+    id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
+    vehicle_id uuid REFERENCES vehicles(id) ON DELETE CASCADE,
+    doc_type varchar NOT NULL CHECK (doc_type IN ('insurance', 'rc', 'pollution')),
+    doc_number varchar,
+    issue_date date,
+    expiry_date date,
+    document_url text,
+    created_at timestamptz DEFAULT now()
+);
+
+CREATE TABLE vehicle_services (
+    id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
+    vehicle_id uuid REFERENCES vehicles(id) ON DELETE CASCADE,
+    service_date date NOT NULL,
+    odometer int,
+    cost numeric,
+    description text,
+    receipt_url text,
+    created_at timestamptz DEFAULT now()
+);
+
+CREATE TABLE vehicle_fuel_logs (
+    id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
+    vehicle_id uuid REFERENCES vehicles(id) ON DELETE CASCADE,
+    fill_date date NOT NULL,
+    odometer int,
+    fuel_amount numeric,
+    cost numeric,
+    receipt_url text,
+    created_at timestamptz DEFAULT now()
+);
+
 CREATE TABLE rides (
     id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
     rider_id uuid REFERENCES rider_profiles(id) ON DELETE CASCADE,

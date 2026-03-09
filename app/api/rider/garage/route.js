@@ -177,12 +177,26 @@ export async function GET(request) {
 
         const { data, error } = await supabaseAdmin
             .from('vehicles')
-            .select('*')
+            .select(`
+                *,
+                vehicle_documents(*),
+                vehicle_services(*),
+                vehicle_fuel_logs(*)
+            `)
             .eq('rider_id', riderProfile.id)
+            .order('created_at', { ascending: false })
+
+        // Optional: sort nested items if needed
+        const formattedData = data?.map(v => ({
+            ...v,
+            vehicle_documents: v.vehicle_documents?.sort((a, b) => new Date(b.created_at) - new Date(a.created_at)) || [],
+            vehicle_services: v.vehicle_services?.sort((a, b) => new Date(b.service_date) - new Date(a.service_date)) || [],
+            vehicle_fuel_logs: v.vehicle_fuel_logs?.sort((a, b) => new Date(b.fill_date) - new Date(a.fill_date)) || []
+        })) || []
 
         if (error) throw error
 
-        return successResponse('Vehicles fetched successfully', data)
+        return successResponse('Vehicles fetched successfully', formattedData)
     } catch (err) {
         return errorResponse('Internal Server Error', 500)
     }
