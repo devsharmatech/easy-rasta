@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
 import { getUserFromRequest } from '@/lib/auth'
-import { sendNotification } from '@/lib/firebase'
+import { sendPushNotification } from '@/lib/notificationHelper'
 
 // Helper: safe query
 async function safeQuery(fn) {
@@ -168,17 +168,19 @@ export async function PUT(request) {
         // Notify Vendor
         if (updatedVendor) {
             if (verification_status === 'approved') {
-                await sendNotification(
+                sendPushNotification(
                     updatedVendor.user_id,
                     'Vendor Application Approved',
-                    'Congratulations! Your vendor profile has been approved. You can now list businesses.'
-                )
+                    'Congratulations! Your vendor profile has been approved. You can now list businesses.',
+                    'system'
+                ).catch(err => console.error('Failed to notify vendor:', err))
             } else if (verification_status === 'rejected') {
-                await sendNotification(
+                sendPushNotification(
                     updatedVendor.user_id,
                     'Vendor Application Rejected',
-                    'Your vendor profile was rejected. Please contact support for details.'
-                )
+                    'Your vendor profile was rejected. Please contact support for details.',
+                    'system'
+                ).catch(err => console.error('Failed to notify vendor:', err))
             }
         }
 
@@ -223,13 +225,14 @@ export async function PATCH(request) {
             `Account ${suspended ? 'suspended' : 'reactivated'}`, user.user_id)
 
         // Notify
-        await sendNotification(
+        sendPushNotification(
             vendor.user_id,
             suspended ? 'Account Suspended' : 'Account Reactivated',
             suspended
                 ? 'Your vendor account has been suspended. Contact support for assistance.'
-                : 'Your vendor account has been reactivated. Welcome back!'
-        )
+                : 'Your vendor account has been reactivated. Welcome back!',
+            'system'
+        ).catch(err => console.error('Failed to notify vendor:', err))
 
         return NextResponse.json({ message: `Vendor ${suspended ? 'suspended' : 'reactivated'}` })
     } catch (err) {

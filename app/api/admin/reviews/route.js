@@ -1,7 +1,7 @@
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
 import { getUserFromRequest } from '@/lib/auth'
 import { successResponse, errorResponse } from '@/lib/apiResponse'
-import { sendNotification } from '@/lib/firebase'
+import { sendPushNotification } from '@/lib/notificationHelper'
 
 // GET — Admin views all reviews or reported reviews
 // ?reported=true   → only reported reviews
@@ -122,7 +122,7 @@ export async function PUT(request) {
 
                 // Push notification
                 try {
-                    await sendNotification(riderId, 'Review Removed', notice_message)
+                    await sendPushNotification(riderId, 'Review Removed', notice_message, 'system')
                 } catch (e) { /* notification failure shouldn't block */ }
             }
 
@@ -149,7 +149,7 @@ export async function PUT(request) {
                     })
 
                 try {
-                    await sendNotification(riderId, 'Review Warning', notice_message)
+                    await sendPushNotification(riderId, 'Review Warning', notice_message, 'system')
                 } catch (e) { /* notification failure shouldn't block */ }
             }
 
