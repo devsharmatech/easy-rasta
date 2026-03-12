@@ -109,6 +109,19 @@ export async function POST(request, { params }) {
 
             // Award XP
             await awardXP(riderProfile.id, 'join_event', event_id)
+
+            // Send Push Notification
+            import('@/lib/notificationHelper').then(({ sendPushNotification }) => {
+                supabaseAdmin.from('events').select('title').eq('id', event_id).single().then(({ data: event }) => {
+                    sendPushNotification(
+                        user.user_id,
+                        'Payment Successful 🎉',
+                        `You are now registered for the event!`,
+                        'event',
+                        { event_id }
+                    )
+                }).catch(err => console.error('[Notify DB Error]', err))
+            }).catch(err => console.error('[Notify Error]', err))
         }
 
         return successResponse('Payment verified and event joined successfully', {

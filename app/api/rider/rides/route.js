@@ -3,7 +3,45 @@ import { getUserFromRequest } from '@/lib/auth'
 import { successResponse, errorResponse } from '@/lib/apiResponse'
 import { awardXP } from '@/lib/xp'
 
-// Start a ride
+// GET — Fetch travel history (completed rides)
+export async function GET(request) {
+    try {
+        const user = getUserFromRequest(request)
+        if (!user || user.role !== 'rider') return errorResponse('Unauthorized', 401)
+
+        const { searchParams } = new URL(request.url)
+        const vehicle_id = searchParams.get('vehicle_id')
+
+        const { data: riderProfile } = await supabaseAdmin
+            .from('rider_profiles')
+            .select('id')
+            .eq('user_id', user.user_id)
+            .single()
+
+        if (!riderProfile) return errorResponse('Rider profile not found', 404)
+
+        let query = supabaseAdmin
+            .from('rides')
+            .select('id, ride_name, start_lat, start_long, end_lat, end_long, total_distance, duration_minutes, avg_speed, is_manual, ride_date, created_at, vehicles(id, make, model)')
+            .eq('rider_id', riderProfile.id)
+            .eq('status', 'completed')
+            .order('created_at', { ascending: false })
+
+        if (vehicle_id) {
+            query = query.eq('vehicle_id', vehicle_id)
+        }
+
+        const { data, error } = await query
+        if (error) throw error
+
+        return successResponse('Travel history fetched successfully', data)
+    } catch (err) {
+        console.error('[Rides GET] Error:', err)
+        return errorResponse('Internal Server Error', 500)
+    }
+}
+
+// POST — Start a live ride OR log a manual past trip
 export async function POST(request) {
     try {
         const user = getUserFromRequest(request)
@@ -20,8 +58,42 @@ export async function POST(request) {
         if (!riderProfile) return errorResponse('Rider profile not found', 404)
 
         const body = await request.json()
-        const { vehicle_id, start_lat, start_long, ride_name } = body
+        const { vehicle_id, start_lat, start_long, ride_name, is_manual, total_distance, duration_minutes, ride_date } = body
 
+        // If manual history, insert as completed directly
+        if (is_manual) {
+            if (!vehicle_id || total_distance === undefined) {
+                return errorResponse('vehicle_id and total_distance are required for manual history', 400)
+            }
+
+            const { data, error } = await supabaseAdmin
+                .from('rides')
+                .insert({
+                    rider_id: riderProfile.id,
+                    vehicle_id,
+                    ride_name: ride_name || 'Manual Trip',
+                    total_distance,
+                    duration_minutes: duration_minutes || 0,
+                    is_manual: true,
+                    ride_date: ride_date || new Date().toISOString().split('T')[0],
+                    status: 'completed',
+                    created_at: new Date().toISOString()
+                })
+                .select()
+                .single()
+
+            if (error) throw error
+            
+            // Award XP for manual rides too
+            const xpEarned = Math.floor(total_distance) * 2 // example: 2 xp per km
+            if (xpEarned > 0) {
+                await awardXP(riderProfile.id, 'ride_distance_per_km', data.id, xpEarned)
+            }
+
+            return successResponse('Manual travel history added', data)
+        }
+
+        // Otherwise, start a normal live tracked ride
         const { data, error } = await supabaseAdmin
             .from('rides')
             .insert({
@@ -40,6 +112,7 @@ export async function POST(request) {
         return successResponse('Ride started successfully', data)
 
     } catch (err) {
+        console.error('[Rides POST] Error:', err)
         return errorResponse('Internal Server Error', 500)
     }
 }

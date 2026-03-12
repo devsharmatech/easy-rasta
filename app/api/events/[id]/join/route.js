@@ -80,6 +80,17 @@ export async function POST(request, { params }) {
 
             await awardXP(riderProfile.id, 'join_event', event_id)
 
+            // Send Push Notification
+            import('@/lib/notificationHelper').then(({ sendPushNotification }) => {
+                sendPushNotification(
+                    user.user_id,
+                    'Event Joined! 🎉',
+                    `You have successfully registered for "${event.title}".`,
+                    'event',
+                    { event_id }
+                )
+            }).catch(err => console.error('[Notify Error]', err))
+
             return successResponse('Joined event successfully')
         }
 

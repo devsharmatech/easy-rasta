@@ -147,6 +147,18 @@ CREATE TABLE rider_notices (
     created_at timestamptz DEFAULT now()
 );
 
+CREATE TABLE notifications (
+    id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id uuid REFERENCES users(id) ON DELETE CASCADE,
+    title varchar NOT NULL,
+    body text NOT NULL,
+    category varchar DEFAULT 'general', -- E.g., 'system', 'promotion', 'wallet', 'ride'
+    data jsonb DEFAULT '{}'::jsonb,     -- Navigation info/metadata for the mobile app to route properly
+    is_read boolean DEFAULT false,
+    created_at timestamptz DEFAULT now()
+);
+
+
 -- ====================================================
 -- RIDER SYSTEM
 -- ====================================================
@@ -288,6 +300,8 @@ CREATE TABLE rides (
     avg_speed numeric DEFAULT 0,
     duration_minutes int DEFAULT 0,
     status ride_status DEFAULT 'active',
+    is_manual boolean DEFAULT false,
+    ride_date date DEFAULT CURRENT_DATE,
     created_at timestamptz DEFAULT now()
 );
 

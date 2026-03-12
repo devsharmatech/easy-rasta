@@ -23,9 +23,8 @@ async function addOrderLog(orderId, action, oldValue, newValue, message, perform
 }
 
 // Helper: Notify rider about order status change
-async function notifyRider(riderId, title, body) {
+async function notifyRider(riderId, title, body, orderId) {
     try {
-        // Get user_id from rider_profiles
         const { data: rider } = await supabaseAdmin
             .from('rider_profiles')
             .select('user_id')
@@ -33,22 +32,19 @@ async function notifyRider(riderId, title, body) {
             .single()
 
         if (rider?.user_id) {
-            const { data: user } = await supabaseAdmin
-                .from('users')
-                .select('device_token')
-                .eq('id', rider.user_id)
-                .single()
-
-            if (user?.device_token) {
-                // Dynamic import to avoid circular deps
-                const { adminMessaging } = await import('@/lib/firebase')
-                await adminMessaging.send({
-                    token: user.device_token,
-                    notification: { title, body }
-                })
-            }
+            import('@/lib/notificationHelper').then(({ sendPushNotification }) => {
+                sendPushNotification(
+                    rider.user_id,
+                    title,
+                    body,
+                    'store', // The mobile app category
+                    { order_id: orderId }
+                )
+            }).catch(err => console.error('[Notify Error]', err))
         }
-    } catch (e) { console.error('Notification error:', e.message) }
+    } catch (e) {
+        console.error('Notification error:', e.message)
+    }
 }
 
 // Status change notification messages
@@ -191,7 +187,7 @@ export async function PATCH(request) {
 
         // Send notifications
         for (const notif of notifications) {
-            await notifyRider(order.rider_id, notif.title, notif.body)
+            await notifyRider(order.rider_id, notif.title, notif.body, order.id)
         }
 
         return NextResponse.json({ message: 'Order updated successfully' })

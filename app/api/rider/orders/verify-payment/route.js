@@ -104,12 +104,24 @@ export async function POST(request) {
             .delete()
             .eq('rider_id', riderProfile.id)
 
+        // Send Push Notification
+        import('@/lib/notificationHelper').then(({ sendPushNotification }) => {
+            sendPushNotification(
+                user.user_id,
+                'Order Confirmed! 🛍️',
+                `Your order #${order.id.slice(0, 8)} has been placed successfully.`,
+                'store',
+                { order_id: order.id }
+            )
+        }).catch(err => console.error('[Notify Error]', err))
+
         return successResponse('Payment verified. Order confirmed!', {
             order_id: order.id,
             total_amount: order.total_amount,
             payment_status: 'paid',
             status: 'confirmed'
         })
+
 
     } catch (err) {
         console.error(err)

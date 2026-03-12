@@ -79,6 +79,7 @@ export default function AdminLayout({ children }) {
                 <SidebarItem href="/admin/amenities" icon={Settings} label="Amenities" active={pathname === '/admin/amenities'} />
                 <SidebarItem href="/admin/xp-rules" icon={ShieldCheck} label="XP Rules" active={pathname === '/admin/xp-rules'} />
                 <SidebarItem href="/admin/reviews" icon={Star} label="Reviews" active={pathname === '/admin/reviews'} />
+                <SidebarItem href="/admin/push-tester" icon={Bell} label="Push Tester" active={pathname === '/admin/push-tester'} />
             </nav>
 
             <div className="p-4 border-t border-white/10 bg-black/5">
