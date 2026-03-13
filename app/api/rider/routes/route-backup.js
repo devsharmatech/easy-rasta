@@ -112,13 +112,11 @@ export async function POST(request) {
                 // Even if cached, always enrich with LATEST prices and reviews
                 let pumps = cachedRoute.pumps_data
 
-                // Enrich with prices ONLY for Fuel type
-                if (activeTab === 'Fuel') {
-                    if (pumps.length > 0 && !pumps[0].city) {
-                        pumps = await enrichPumpsWithCities(pumps)
-                    }
-                    pumps = await enrichPumpsWithLocalPrices(pumps)
+                // If cached pumps don't have city info, re-geocode them
+                if (pumps.length > 0 && !pumps[0].city) {
+                    pumps = await enrichPumpsWithCities(pumps)
                 }
+                pumps = await enrichPumpsWithLocalPrices(pumps)
                 pumps = await enrichPumpsWithReviews(pumps)
 
                 return successResponse('Route fetched from cache', {
@@ -152,17 +150,7 @@ export async function POST(request) {
         const points = decodePolyline(directions.routes[0].overview_polyline.points)
         const samplePoints = sampleRoutePoints(points)
 
-        // Map activeTab to Google Places type
-        const TYPE_MAP = {
-            'Fuel': 'gas_station',
-            'Washroom': 'toilet',
-            'Hotel': 'lodging',
-            'Repair': 'car_repair',
-            'Medical': 'pharmacy',
-            'Food': 'restaurant'
-        }
-        const type = TYPE_MAP[activeTab] || 'gas_station'
-        const useKeywordSearch = activeTab === 'Washroom' // Google doesn't always support 'toilet' as type
+        const type = activeTab === "Fuel" ? "gas_station" : activeTab === "Food" ? "restaurant" : "car_repair"
 
         // 4. Find Pumps — CACHE-FIRST approach
         //    Check our local discovered_pumps DB for each sample point first.
@@ -214,13 +202,11 @@ export async function POST(request) {
         // 4b. Fetch from Google Places API ONLY for uncovered points
         if (uncoveredPoints.length > 0) {
             const placeResponses = await Promise.all(
-                uncoveredPoints.map(p => {
-                    // For washrooms, use keyword search since 'toilet' type isn't well-supported
-                    const url = useKeywordSearch
-                        ? `https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=${p.latitude},${p.longitude}&radius=5000&keyword=public+toilet+washroom&key=${GOOGLE_API_KEY}`
-                        : `https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=${p.latitude},${p.longitude}&radius=5000&type=${type}&key=${GOOGLE_API_KEY}`
-                    return fetchWithRetry(url).then(r => r.json()).catch(() => ({ results: [] }))
-                })
+                uncoveredPoints.map(p =>
+                    fetchWithRetry(
+                        `https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=${p.latitude},${p.longitude}&radius=5000&type=${type}&key=${GOOGLE_API_KEY}`
+                    ).then(r => r.json()).catch(() => ({ results: [] }))
+                )
             )
 
             const newPumpsToSave = []
@@ -285,13 +271,13 @@ export async function POST(request) {
 
         let pumps = Array.from(uniquePumps.values())
 
-        // 5. Enrich with prices ONLY for Fuel type
-        if (activeTab === 'Fuel') {
-            pumps = await enrichPumpsWithCities(pumps)
-            pumps = await enrichPumpsWithLocalPrices(pumps)
-        }
+        // 5. Enrich pumps with city names via Geocoding
+        pumps = await enrichPumpsWithCities(pumps)
 
-        // 6. Attach user reviews for all place types
+        // 6. Attach local DB fuel prices to each pump by matching city name
+        pumps = await enrichPumpsWithLocalPrices(pumps)
+
+        // 7. Attach user reviews for each pump
         pumps = await enrichPumpsWithReviews(pumps)
 
         // 8. Cache this calculated route for future users!
@@ -453,7 +439,7 @@ async function enrichPumpsWithReviews(pumps) {
     const { data: allReviews, error } = await supabaseAdmin
         .from('pump_reviews')
         .select(`
-            id, place_id, rating, review_text, image_url, created_at, rider_id,
+            id, place_id, rating, review_text, created_at, rider_id,
             rider_profiles(user_id, users:user_id(full_name, profile_image_url))
         `)
         .in('place_id', placeIds)
@@ -474,7 +460,6 @@ async function enrichPumpsWithReviews(pumps) {
                 id: rev.id,
                 rating: rev.rating,
                 review_text: rev.review_text,
-                image_url: rev.image_url || null,
                 created_at: rev.created_at,
                 rider_name: rev.rider_profiles?.users?.full_name || 'Anonymous',
                 rider_image: rev.rider_profiles?.users?.profile_image_url || null

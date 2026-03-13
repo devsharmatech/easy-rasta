@@ -1,0 +1,43 @@
+{
+  "data": [
+    {
+      "id": "530900fd-4aef-4261-9965-d84e4af681b0",
+      "vendor_id": "973b3957-89e2-416d-b5be-f7de7fd7ac92",
+      "business_name": "Krisna Fuel Station",
+      "category": "fuel",
+      "latitude": 37.421998333333335,
+      "longitude": -122.084,
+      "landmark": "Near By Gorvement Hospital ",
+      "logo_url": "https://dxugvfjfpmidxeifpdcj.supabase.co/storage/v1/object/public/media/business-media/973b3957-89e2-416d-b5be-f7de7fd7ac92/logo_1772005107547.jpg",
+      "featured_image_url": "https://dxugvfjfpmidxeifpdcj.supabase.co/storage/v1/object/public/media/business-media/973b3957-89e2-416d-b5be-f7de7fd7ac92/featured_1772005108524.jpg",
+      "restroom_available": false,
+      "restroom_type": "free",
+      "open_time": "12:01:00",
+      "close_time": "11:30:00",
+      "is_active": false,
+      "created_at": "2026-02-25T07:38:29.583953+00:00",
+      "updated_at": "2026-02-25T07:38:29.583953+00:00",
+      "deleted_at": "2026-02-27T06:08:01.77+00:00"
+    },
+    {
+      "id": "59f56d3b-b3fb-4187-89e3-4e6f16df5a14",
+      "vendor_id": "973b3957-89e2-416d-b5be-f7de7fd7ac92",
+      "business_name": "Radhe  kripa Food ",
+      "category": "food",
+      "latitude": 37.421998333333335,
+      "longitude": -122.084,
+      "landmark": "G.noida in Galaxy bule pilaza",
+      "logo_url": "https://dxugvfjfpmidxeifpdcj.supabase.co/storage/v1/object/public/media/business-media/973b3957-89e2-416d-b5be-f7de7fd7ac92/logo_1771910009137.jpg",
+      "featured_image_url": null,
+      "restroom_available": true,
+      "restroom_type": "paid",
+      "open_time": "10:30:00",
+      "close_time": "12:59:00",
+      "is_active": false,
+      "created_at": "2026-02-24T05:13:29.825455+00:00",
+      "updated_at": "2026-02-24T05:13:29.825455+00:00",
+      "deleted_at": "2026-02-27T06:08:17.476+00:00"
+    }
+  ],
+  "updateError": null
+}

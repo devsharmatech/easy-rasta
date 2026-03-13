@@ -13,7 +13,7 @@ export const metadata = {
 export default function RootLayout({ children }) {
     return (
         <html lang="en">
-            <body className={cn(inter.className, "min-h-screen bg-background font-sans antialiased")}>
+            <body suppressHydrationWarning className={cn(inter.className, "min-h-screen bg-background font-sans antialiased")}>
                 {children}
                 <Toaster />
             </body>

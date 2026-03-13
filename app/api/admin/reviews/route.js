@@ -21,7 +21,7 @@ export async function GET(request) {
             // Get reported reviews with report details
             let query = supabaseAdmin
                 .from('review_reports')
-                .select('*, vendor_reviews:review_id(*, vendor_businesses(business_name), rider_profiles(user_id, users:user_id(full_name, mobile))), reporter:reported_by(full_name)')
+                .select('*, business_reviews:review_id(*, vendor_businesses(business_name), users(full_name, mobile)), reporter:reported_by(full_name)')
                 .order('created_at', { ascending: false })
 
             if (status) {
@@ -37,16 +37,16 @@ export async function GET(request) {
                 report_status: r.status,
                 reported_by: r.reporter?.full_name,
                 reported_at: r.created_at,
-                review: r.vendor_reviews ? {
-                    id: r.vendor_reviews.id,
-                    rating: r.vendor_reviews.rating,
-                    review: r.vendor_reviews.review,
-                    image_url: r.vendor_reviews.image_url,
-                    business_name: r.vendor_reviews.vendor_businesses?.business_name,
-                    reviewer_name: r.vendor_reviews.rider_profiles?.users?.full_name || 'Unknown',
-                    reviewer_mobile: r.vendor_reviews.rider_profiles?.users?.mobile,
-                    rider_user_id: r.vendor_reviews.rider_profiles?.user_id,
-                    created_at: r.vendor_reviews.created_at
+                review: r.business_reviews ? {
+                    id: r.business_reviews.id,
+                    rating: r.business_reviews.rating,
+                    review: r.business_reviews.review,
+                    image_url: r.business_reviews.image_url,
+                    business_name: r.business_reviews.vendor_businesses?.business_name,
+                    reviewer_name: r.business_reviews.users?.full_name || 'Unknown',
+                    reviewer_mobile: r.business_reviews.users?.mobile,
+                    rider_user_id: r.business_reviews.user_id,
+                    created_at: r.business_reviews.created_at
                 } : null
             }))
 
@@ -56,7 +56,7 @@ export async function GET(request) {
         // All reviews
         const { data, error } = await supabaseAdmin
             .from('vendor_reviews')
-            .select('*, vendor_businesses(business_name), rider_profiles(user_id, users:user_id(full_name))')
+            .select('*, vendor_businesses(business_name), rider_profiles(user_id, users:user_id(full_name, mobile))')
             .order('created_at', { ascending: false })
 
         if (error) throw error
@@ -91,13 +91,13 @@ export async function PUT(request) {
         // Get the report with review details
         const { data: report } = await supabaseAdmin
             .from('review_reports')
-            .select('*, vendor_reviews:review_id(*, rider_profiles(user_id))')
+            .select('*, business_reviews:review_id(id, user_id)')
             .eq('id', report_id)
             .single()
 
         if (!report) return errorResponse('Report not found', 404)
 
-        const riderId = report.vendor_reviews?.rider_profiles?.user_id
+        const riderId = report.business_reviews?.user_id
 
         if (action === 'delete') {
             // Delete the review (cascades to delete the report too)

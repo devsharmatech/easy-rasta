@@ -53,7 +53,7 @@ export default function ProductsPage() {
     const [bulkDeleting, setBulkDeleting] = useState(false)
     const [refreshing, setRefreshing] = useState(false)
 
-    const [formData, setFormData] = useState({ name: '', description: '', price: '', stock: '', image_url: '' })
+    const [formData, setFormData] = useState({ name: '', description: '', price: '', stock: '', image_url: '', shopify_link: '' })
 
     const token = typeof window !== 'undefined' ? localStorage.getItem('adminToken') : null
     const headers = { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }
@@ -89,11 +89,11 @@ export default function ProductsPage() {
             setCurrentProduct(product)
             setFormData({
                 name: product.name, description: product.description || '', price: product.price,
-                stock: product.stock || 0, image_url: product.image_url || '',
+                stock: product.stock || 0, image_url: product.image_url || '', shopify_link: product.shopify_link || ''
             })
         } else {
             setCurrentProduct(null)
-            setFormData({ name: '', description: '', price: '', stock: '0', image_url: '' })
+            setFormData({ name: '', description: '', price: '', stock: '0', image_url: '', shopify_link: '' })
         }
         setIsDialogOpen(true)
     }
@@ -453,6 +453,11 @@ export default function ProductsPage() {
                             </div>
                         </div>
                         <div className="space-y-2">
+                            <Label htmlFor="shopify_link">Shopify Purchase Link</Label>
+                            <Input id="shopify_link" type="url" placeholder="https://your-store.myshopify.com/products/..." value={formData.shopify_link} onChange={(e) => setFormData({ ...formData, shopify_link: e.target.value })} />
+                            <p className="text-[10px] text-muted-foreground mt-1">If provided, users will be redirected here to checkout instead of using the in-app cart.</p>
+                        </div>
+                        <div className="space-y-2">
                             <ImageUpload value={formData.image_url} onChange={(url) => setFormData({ ...formData, image_url: url })} aspectRatio={1} folder="products" />
                         </div>
                         <DialogFooter>
@@ -507,6 +512,13 @@ export default function ProductsPage() {
                                     <p className="text-2xl font-bold text-orange-600 mt-1">₹{Number(detailProduct.price).toLocaleString()}</p>
                                     {detailProduct.description && (
                                         <p className="text-sm text-muted-foreground mt-2">{detailProduct.description}</p>
+                                    )}
+                                    {detailProduct.shopify_link && (
+                                        <div className="mt-3">
+                                            <a href={detailProduct.shopify_link} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-green-50 text-green-700 border border-green-200 rounded-md text-xs font-semibold hover:bg-green-100 transition-colors">
+                                                <ShoppingCart className="h-3.5 w-3.5" /> View on Shopify
+                                            </a>
+                                        </div>
                                     )}
                                 </div>
                             </div>

@@ -162,7 +162,7 @@ export async function POST(request) {
         }
 
         const body = await request.json()
-        const { name, description, price, image_url, stock } = body
+        const { name, description, price, image_url, stock, shopify_link } = body
 
         if (!name || !price) {
             return NextResponse.json({ error: 'Name and Price are required' }, { status: 400 })
@@ -170,7 +170,7 @@ export async function POST(request) {
 
         const { data, error } = await supabaseAdmin
             .from('products')
-            .insert([{ name, description, price, image_url, stock: stock || 0 }])
+            .insert([{ name, description, price, image_url, stock: stock || 0, shopify_link }])
             .select()
 
         if (error) throw error

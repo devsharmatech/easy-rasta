@@ -166,25 +166,56 @@ export async function DELETE(request) {
         }
 
         const { searchParams } = new URL(request.url)
-        const id = searchParams.get('id')
-        const ids = searchParams.get('ids')
+        let id = searchParams.get('id')
+        let ids = searchParams.get('ids')
+
+        // Try reading from body if not in URL
+        if (!id && !ids) {
+            try {
+                const body = await request.json()
+                id = body.id
+                ids = body.ids // This can be an array or string
+            } catch (e) {
+                // Ignore JSON parse errors if body is empty
+            }
+        }
 
         const deleteTime = new Date().toISOString()
 
         if (ids) {
-            const idList = ids.split(',').map(i => i.trim()).filter(Boolean)
-            await supabaseAdmin
+            let idList = []
+            if (Array.isArray(ids)) {
+                idList = ids.filter(Boolean)
+            } else if (typeof ids === 'string') {
+                idList = ids.split(',').map(i => i.trim()).filter(Boolean)
+            }
+            
+            if (idList.length === 0) {
+                return NextResponse.json({ error: 'No valid IDs provided' }, { status: 400 })
+            }
+
+            const { error } = await supabaseAdmin
                 .from('vendor_businesses')
                 .update({ deleted_at: deleteTime, is_active: false })
                 .in('id', idList)
+            
+            if (error) {
+                console.error('Bulk delete error:', error)
+                return NextResponse.json({ error: error.message }, { status: 500 })
+            }
             return NextResponse.json({ message: `${idList.length} businesses deleted` })
         }
 
         if (id) {
-            await supabaseAdmin
+            const { error } = await supabaseAdmin
                 .from('vendor_businesses')
                 .update({ deleted_at: deleteTime, is_active: false })
                 .eq('id', id)
+            
+            if (error) {
+                console.error('Delete error:', error)
+                return NextResponse.json({ error: error.message }, { status: 500 })
+            }
             return NextResponse.json({ message: 'Business deleted' })
         }
 
