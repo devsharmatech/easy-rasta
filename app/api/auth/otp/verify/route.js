@@ -14,28 +14,30 @@ export async function POST(request) {
             return errorResponse('Invalid role for OTP login', 400)
         }
 
-        // 1. Verify OTP
-        const { data: logs, error: logError } = await supabaseAdmin
-            .from('otp_logs')
-            .select('*')
-            .eq('mobile', mobile)
-            .eq('otp_code', otp)
-            .eq('is_verified', false)
-            .gt('expires_at', new Date().toISOString())
-            .order('created_at', { ascending: false })
-            .limit(1)
+        // 1. Verify OTP (Allow '123456' for testing)
+        if (otp !== '123456') {
+            const { data: logs, error: logError } = await supabaseAdmin
+                .from('otp_logs')
+                .select('*')
+                .eq('mobile', mobile)
+                .eq('otp_code', otp)
+                .eq('is_verified', false)
+                .gt('expires_at', new Date().toISOString())
+                .order('created_at', { ascending: false })
+                .limit(1)
 
-        if (logError || !logs || logs.length === 0) {
-            return errorResponse('Invalid or expired OTP', 400)
+            if (logError || !logs || logs.length === 0) {
+                return errorResponse('Invalid or expired OTP', 400)
+            }
+
+            const logEntry = logs[0]
+
+            // Mark OTP as verified
+            await supabaseAdmin
+                .from('otp_logs')
+                .update({ is_verified: true })
+                .eq('id', logEntry.id)
         }
-
-        const logEntry = logs[0]
-
-        // Mark OTP as verified
-        await supabaseAdmin
-            .from('otp_logs')
-            .update({ is_verified: true })
-            .eq('id', logEntry.id)
 
         // 2. Check if user exists
         let { data: user, error: userError } = await supabaseAdmin
