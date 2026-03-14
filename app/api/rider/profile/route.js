@@ -11,7 +11,7 @@ export async function GET(request) {
 
         const { data, error } = await supabaseAdmin
             .from('rider_profiles')
-            .select('*, users:user_id(full_name, mobile, email, profile_image_url)')
+            .select('*, users:user_id(full_name, mobile, email, sos_number, profile_image_url)')
             .eq('user_id', user.user_id)
             .single()
 
@@ -24,6 +24,7 @@ export async function GET(request) {
             full_name: userInfo?.full_name,
             mobile: userInfo?.mobile,
             email: userInfo?.email,
+            sos_number: userInfo?.sos_number,
             profile_image_url: userInfo?.profile_image_url
         })
     } catch (err) {
@@ -43,8 +44,28 @@ export async function PUT(request) {
         const full_name = formData.get('full_name')
         const email = formData.get('email')
         const mobile = formData.get('mobile')
+        const sos_number = formData.get('sos_number')
         const profile_image = formData.get('profile_image')
         const referral_code = formData.get('referral_code')
+
+        // Fetch current user details to compare mobile numbers
+        const { data: currentUser } = await supabaseAdmin
+            .from('users')
+            .select('mobile')
+            .eq('id', user.user_id)
+            .single()
+
+        // Validate sos_number
+        if (sos_number) {
+            const mobileRegex = /^[6-9]\d{9}$/
+            if (!mobileRegex.test(sos_number)) {
+                return errorResponse('Invalid SOS number. Must be 10 digits starting with 6-9', 400)
+            }
+            const activeMobile = mobile || currentUser?.mobile
+            if (sos_number === activeMobile) {
+                return errorResponse('SOS number cannot be the same as your primary mobile number', 400)
+            }
+        }
 
         // Validate email format
         if (email) {
@@ -110,7 +131,8 @@ export async function PUT(request) {
         const userUpdates = {
             full_name: full_name || undefined,
             email: email || undefined,
-            mobile: mobile || undefined
+            mobile: mobile || undefined,
+            sos_number: sos_number || undefined
         }
         // Only update profile image if a new file was uploaded
         if (profile_image_url) userUpdates.profile_image_url = profile_image_url
@@ -143,7 +165,7 @@ export async function PUT(request) {
         // Fetch updated profile
         const { data: updated, error: fetchError } = await supabaseAdmin
             .from('rider_profiles')
-            .select('*, users:user_id(full_name, mobile, email, profile_image_url)')
+            .select('*, users:user_id(full_name, mobile, email, sos_number, profile_image_url)')
             .eq('user_id', user.user_id)
             .single()
 
@@ -156,6 +178,7 @@ export async function PUT(request) {
             full_name: userInfo?.full_name,
             mobile: userInfo?.mobile,
             email: userInfo?.email,
+            sos_number: userInfo?.sos_number,
             profile_image_url: userInfo?.profile_image_url
         })
 

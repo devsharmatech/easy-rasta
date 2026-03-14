@@ -3,8 +3,8 @@ import { getUserFromRequest } from '@/lib/auth'
 import { successResponse, errorResponse } from '@/lib/apiResponse'
 import crypto from 'crypto'
 
-const GOOGLE_API_KEY = process.env.GOOGLE_API_KEY || "AIzaSyBhU9nOjM9YDEeXXKET5hgCVqQtOLjPIBM"
-const RAPID_API_KEY = process.env.RAPID_API_KEY || "d06f069811msh4d53a50162222c8p168875jsn3d322a6786ff"
+const GOOGLE_API_KEY = process.env.GOOGLE_API_KEY || null
+const RAPID_API_KEY = process.env.RAPID_API_KEY || null
 
 // Utility to retry fetches if APIs randomly drop connection
 async function fetchWithRetry(url, options = {}, maxRetries = 3) {
