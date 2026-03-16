@@ -4,7 +4,7 @@ import { successResponse, errorResponse } from '@/lib/apiResponse'
 
 export async function POST(request) {
     try {
-        const { mobile, otp, role, full_name, gst_number, referral_code } = await request.json()
+        const { mobile, otp, role, full_name, gst_number, referral_code, sos_number } = await request.json()
 
         if (!mobile || !otp || !role) {
             return errorResponse('Mobile, OTP and Role are required', 400)
@@ -54,12 +54,24 @@ export async function POST(request) {
                 return errorResponse('Full Name is required for new registration', 400)
             }
 
+            // Optional SOS Number Validation (Support country codes)
+            if (sos_number) {
+                const sosRegex = /^(\+?\d{1,3})?([6-9]\d{9})$/
+                if (!sosRegex.test(sos_number.replace(/\s+/g, ''))) {
+                    return errorResponse('Invalid SOS number format', 400)
+                }
+                if (sos_number === mobile) {
+                    return errorResponse('SOS number cannot be the same as your primary mobile number', 400)
+                }
+            }
+
             const { data: newUser, error: createError } = await supabaseAdmin
                 .from('users')
                 .insert({
                     mobile,
                     role,
                     full_name,
+                    sos_number: sos_number || null,
                     is_verified: true,
                     is_active: true
                 })
@@ -106,7 +118,8 @@ export async function POST(request) {
                     id: user.id,
                     mobile: user.mobile,
                     role: user.role,
-                    full_name: user.full_name
+                    full_name: user.full_name,
+                    sos_number: user.sos_number
                 }
             }
         )

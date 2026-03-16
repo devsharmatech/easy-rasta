@@ -218,10 +218,13 @@ export async function GET(request) {
 
             if (!riderProfile) return errorResponse('Rider profile not found', 404)
 
+            const today = new Date().toISOString().split('T')[0]
+
             const { data, error } = await supabaseAdmin
                 .from('events')
                 .select('*')
                 .eq('rider_id', riderProfile.id)
+                .gte('date', today)
                 .order('created_at', { ascending: false })
 
             if (error) throw error
@@ -244,7 +247,9 @@ export async function GET(request) {
 
             if (!riderProfile) return errorResponse('Rider profile not found', 404)
 
-            // Get joined events with full details
+            const today = new Date().toISOString().split('T')[0]
+
+            // Get joined events with full details (Filter out expired events)
             const { data, error } = await supabaseAdmin
                 .from('event_participants')
                 .select(`
@@ -261,6 +266,8 @@ export async function GET(request) {
                     )
                 `)
                 .eq('rider_id', riderProfile.id)
+                .is('events.status', 'published') // Ensure event is still published
+                .gte('events.date', today)
                 .order('joined_at', { ascending: false })
 
             if (error) throw error
@@ -316,10 +323,13 @@ export async function GET(request) {
         }
 
         // Public — All published events with organizer info
+        const today = new Date().toISOString().split('T')[0]
+
         const { data, error } = await supabaseAdmin
             .from('events')
             .select('*, rider_profiles(user_id, total_rides, level, xp, users:user_id(full_name, profile_image_url))')
             .eq('status', 'published')
+            .gte('date', today)
             .order('date', { ascending: true })
 
         if (error) throw error

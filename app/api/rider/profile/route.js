@@ -55,14 +55,15 @@ export async function PUT(request) {
             .eq('id', user.user_id)
             .single()
 
-        // Validate sos_number
+        // Validate sos_number (Flexible regex for country codes + 10 digits)
         if (sos_number) {
-            const mobileRegex = /^[6-9]\d{9}$/
-            if (!mobileRegex.test(sos_number)) {
-                return errorResponse('Invalid SOS number. Must be 10 digits starting with 6-9', 400)
+            const sosRegex = /^(\+?\d{1,3})?([6-9]\d{9})$/
+            const cleanSos = sos_number.replace(/\s+/g, '')
+            if (!sosRegex.test(cleanSos)) {
+                return errorResponse('Invalid SOS number format', 400)
             }
             const activeMobile = mobile || currentUser?.mobile
-            if (sos_number === activeMobile) {
+            if (cleanSos === activeMobile?.replace(/\s+/g, '')) {
                 return errorResponse('SOS number cannot be the same as your primary mobile number', 400)
             }
         }
