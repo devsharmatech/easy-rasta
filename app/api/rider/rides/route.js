@@ -24,7 +24,7 @@ export async function GET(request) {
             .from('rides')
             .select('id, ride_name, start_lat, start_long, end_lat, end_long, total_distance, duration_minutes, avg_speed, is_manual, ride_date, created_at, vehicles(id, make, model)')
             .eq('rider_id', riderProfile.id)
-            .eq('status', 'completed')
+            // .eq('status', 'completed')
             .order('created_at', { ascending: false })
 
         if (vehicle_id) {
@@ -83,7 +83,7 @@ export async function POST(request) {
                 .single()
 
             if (error) throw error
-            
+
             // Award XP for manual rides too
             const xpEarned = Math.floor(total_distance) * 2 // example: 2 xp per km
             if (xpEarned > 0) {
