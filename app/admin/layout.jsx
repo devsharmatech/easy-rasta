@@ -5,7 +5,7 @@ import { useRouter, usePathname } from 'next/navigation'
 import Link from 'next/link'
 import {
     LogOut, LayoutDashboard, Store, Bike, Calendar, ShieldCheck, Star,
-    Settings, Menu, Package, Bell, Mail, ChevronRight, Sparkles
+    Settings, Menu, Package, Bell, Mail, ChevronRight, Sparkles, MapPin
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
@@ -26,6 +26,7 @@ const navSections = [
             { href: '/admin/products', icon: Package, label: 'Products' },
             { href: '/admin/events', icon: Calendar, label: 'Events' },
             { href: '/admin/messages', icon: Mail, label: 'Messages' },
+            { href: '/admin/location-requests', icon: MapPin, label: 'Location Requests' },
         ]
     },
     {

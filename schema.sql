@@ -793,3 +793,32 @@ CREATE POLICY "Admin Upload Access" ON storage.objects FOR INSERT WITH CHECK (
 CREATE POLICY "Admin Delete Access" ON storage.objects FOR DELETE USING (
     bucket_id = 'media' AND (auth.role() = 'service_role' OR EXISTS (SELECT 1 FROM users WHERE id = auth.uid() AND role = 'admin'))
 );
+
+-- ====================================================
+-- LOCATION REQUEST SYSTEM
+-- ====================================================
+CREATE TABLE location_requests (
+    id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
+    rider_id uuid REFERENCES rider_profiles(id) ON DELETE CASCADE,
+    type varchar NOT NULL CHECK (type IN ('washroom', 'petrol_pump')),
+    name varchar NOT NULL,
+    latitude numeric NOT NULL,
+    longitude numeric NOT NULL,
+    message text NOT NULL,
+    image_url text NOT NULL,
+    is_paid boolean DEFAULT false,
+    price numeric,
+    status varchar DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'rejected')),
+    admin_remark text,
+    created_at timestamptz DEFAULT now(),
+    updated_at timestamptz DEFAULT now()
+);
+
+ALTER TABLE location_requests ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Riders manage own requests" ON location_requests FOR ALL USING (
+    EXISTS (SELECT 1 FROM rider_profiles WHERE id = rider_id AND user_id = auth.uid())
+);
+CREATE POLICY "Admins manage all requests" ON location_requests FOR ALL USING (
+    EXISTS (SELECT 1 FROM users WHERE id = auth.uid() AND role = 'admin')
+);
+
