@@ -266,7 +266,7 @@ export async function GET(request) {
                     )
                 `)
                 .eq('rider_id', riderProfile.id)
-                .is('events.status', 'published') // Ensure event is still published
+                .eq('events.status', 'published') // Ensure event is still published
                 .gte('events.date', today)
                 .order('joined_at', { ascending: false })
 
@@ -325,20 +325,70 @@ export async function GET(request) {
         // Public — All published events with organizer info
         const today = new Date().toISOString().split('T')[0]
 
+        // Fetch events with organizer info and participants
         const { data, error } = await supabaseAdmin
             .from('events')
-            .select('*, rider_profiles(user_id, total_rides, level, xp, users:user_id(full_name, profile_image_url))')
+            .select(`
+                *,
+                rider_profiles!events_rider_id_fkey(user_id, total_rides, level, xp, users!rider_profiles_user_id_fkey(full_name, profile_image_url)),
+                event_participants(
+                    rider_id,
+                    rider_profiles!event_participants_rider_id_fkey(
+                        user_id,
+                        users!rider_profiles_user_id_fkey(id, full_name, profile_image_url)
+                    )
+                )
+            `)
             .eq('status', 'published')
             .gte('date', today)
             .order('date', { ascending: true })
 
         if (error) throw error
 
-        // Flatten organizer info for cleaner response
+        // Optionally get current user for 'is_user_already_joined' flag
+        let currentUserId = null
+        let currentRiderProfileId = null
+        try {
+            const authHeader = request.headers.get('authorization')
+            if (authHeader) {
+                const user = getUserFromRequest(request)
+                if (user && user.role === 'rider') {
+                    currentUserId = user.user_id
+                    
+                    const { data: riderProfile } = await supabaseAdmin
+                        .from('rider_profiles')
+                        .select('id')
+                        .eq('user_id', currentUserId)
+                        .single()
+                    
+                    if (riderProfile) {
+                        currentRiderProfileId = riderProfile.id
+                    }
+                }
+            }
+        } catch (e) {
+            // Silence auth extraction errors on public endpoint
+        }
+
+        // Flatten organizer info and map participants for cleaner response
         const events = data.map(event => {
-            const { rider_profiles, ...rest } = event
+            // Using rest pattern to exclude old references from output
+            const { rider_profiles, event_participants, ...rest } = event
+            
+            const joiners = (event_participants || []).map(p => ({
+                id: p.rider_id,
+                name: p.rider_profiles?.users?.full_name || 'Unknown Rider',
+                profile_image: p.rider_profiles?.users?.profile_image_url || null
+            }))
+
+            const is_user_already_joined = currentRiderProfileId 
+                ? (event_participants || []).some(p => p.rider_id === currentRiderProfileId)
+                : false
+
             return {
                 ...rest,
+                is_user_already_joined,
+                joiners,
                 organizer: {
                     name: rider_profiles?.users?.full_name || 'Unknown',
                     profile_image: rider_profiles?.users?.profile_image_url || null,
@@ -351,6 +401,7 @@ export async function GET(request) {
 
         return successResponse('Events fetched successfully', events)
     } catch (err) {
+        console.error("GET EVENTS ERROR:", err)
         return errorResponse('Internal Server Error', 500)
     }
 }
