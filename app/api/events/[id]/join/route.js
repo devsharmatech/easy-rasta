@@ -82,6 +82,7 @@ export async function POST(request, { params }) {
 
             // Send Push Notification
             import('@/lib/notificationHelper').then(({ sendPushNotification }) => {
+                // Notify Participant
                 sendPushNotification(
                     user.user_id,
                     'Event Joined! 🎉',
@@ -89,6 +90,26 @@ export async function POST(request, { params }) {
                     'event',
                     { event_id }
                 )
+
+                // Notify Organizer
+                if (event.rider_id) {
+                    supabaseAdmin.from('rider_profiles').select('user_id').eq('id', event.rider_id).single()
+                    .then(({ data: orgProfile }) => {
+                        if (orgProfile?.user_id) {
+                            supabaseAdmin.from('users').select('full_name').eq('id', user.user_id).single()
+                            .then(({ data: userInfo }) => {
+                                const participantName = userInfo?.full_name || 'A rider'
+                                sendPushNotification(
+                                    orgProfile.user_id,
+                                    'New Event Participant! 🏍️',
+                                    `${participantName} has joined your event "${event.title}".`,
+                                    'event',
+                                    { event_id }
+                                )
+                            })
+                        }
+                    }).catch(err => console.error('[Notify Org Error]', err))
+                }
             }).catch(err => console.error('[Notify Error]', err))
 
             return successResponse('Joined event successfully')

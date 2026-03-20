@@ -1,6 +1,7 @@
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
 import { getUserFromRequest } from '@/lib/auth'
 import { successResponse, errorResponse } from '@/lib/apiResponse'
+import { sendPushNotification } from '@/lib/notificationHelper'
 
 const uploadFile = async (file, folder, userId) => {
     if (!file || typeof file === 'string' || file.size === 0) return null
@@ -118,6 +119,40 @@ export async function POST(request) {
             .single()
 
         if (error) throw error
+
+        try {
+            // Identify receiver
+            const receiverRiderId = isOrganizer ? targetParticipantId : event.rider_id;
+            
+            const { data: receiverProfile } = await supabaseAdmin
+                .from('rider_profiles')
+                .select('user_id')
+                .eq('id', receiverRiderId)
+                .single()
+
+            if (receiverProfile?.user_id) {
+                // Get sender name for better notification
+                const { data: senderInfo } = await supabaseAdmin
+                    .from('users')
+                    .select('full_name')
+                    .eq('id', user.user_id)
+                    .single()
+                
+                const senderName = senderInfo?.full_name || 'Someone';
+                const pushTitle = `New message from ${senderName}`;
+                const pushBody = message_type === 'image' ? '📸 Sent an image' : (typeof content === 'string' ? content.substring(0, 100) : 'New message');
+                
+                await sendPushNotification(
+                    receiverProfile.user_id,
+                    pushTitle,
+                    pushBody,
+                    'chat',
+                    { event_id, participant_id: targetParticipantId }
+                )
+            }
+        } catch (pushErr) {
+            console.error("PUSH ERROR:", pushErr)
+        }
 
         return successResponse('Message sent successfully', message)
 
