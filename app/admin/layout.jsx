@@ -35,6 +35,7 @@ const navSections = [
         items: [
             { href: '/admin/amenities', icon: Settings, label: 'Amenities' },
             { href: '/admin/xp-rules', icon: Sparkles, label: 'XP Rules' },
+            { href: '/admin/expense-settings', icon: Receipt, label: 'Expense Settings' },
             { href: '/admin/reviews', icon: Star, label: 'Reviews' },
             { href: '/admin/push-tester', icon: Bell, label: 'Push Tester' },
         ]

@@ -10,14 +10,14 @@ import { Badge } from '@/components/ui/badge'
 import { Eye, CheckCircle, XCircle, Search, Calendar, MapPin, Droplet, Wrench, FileText } from 'lucide-react'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { toast } from 'react-hot-toast'
+import { toast } from 'sonner'
 
 export default function ExpensesAdminPage() {
     const [expenses, setExpenses] = useState([])
     const [loading, setLoading] = useState(true)
     const [selectedIds, setSelectedIds] = useState([])
     const [actionLoading, setActionLoading] = useState(false)
-    
+
     // Filters
     const [filterType, setFilterType] = useState('all')
     const [filterStatus, setFilterStatus] = useState('all')
@@ -30,7 +30,7 @@ export default function ExpensesAdminPage() {
 
     useEffect(() => {
         fetchExpenses()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [page, filterType, filterStatus, searchName])
 
     const fetchExpenses = async () => {
@@ -46,7 +46,7 @@ export default function ExpensesAdminPage() {
                 headers: { 'Authorization': `Bearer ${token}` }
             })
             const data = await res.json()
-            if (data.success) {
+            if (data.status) {
                 setExpenses(data.data.data)
                 setTotalPages(data.data.pagination.total_pages || 1)
             } else {
@@ -73,7 +73,7 @@ export default function ExpensesAdminPage() {
                 body: JSON.stringify({ expense_ids: ids, action })
             })
             const data = await res.json()
-            if (data.success) {
+            if (data.status) {
                 toast.success(data.message)
                 setSelectedIds([])
                 fetchExpenses()
@@ -129,8 +129,8 @@ export default function ExpensesAdminPage() {
                 </div>
                 {selectedIds.length > 0 && (
                     <div className="flex gap-2 mt-4 md:mt-0">
-                        <Button 
-                            variant="outline" 
+                        <Button
+                            variant="outline"
                             className="bg-emerald-50 text-emerald-600 border-emerald-200 hover:bg-emerald-100"
                             onClick={() => handleAction(selectedIds, 'approve')}
                             disabled={actionLoading}
@@ -138,8 +138,8 @@ export default function ExpensesAdminPage() {
                             <CheckCircle className="w-4 h-4 mr-2" />
                             Approve Selected ({selectedIds.length})
                         </Button>
-                        <Button 
-                            variant="outline" 
+                        <Button
+                            variant="outline"
                             className="bg-red-50 text-red-600 border-red-200 hover:bg-red-100"
                             onClick={() => handleAction(selectedIds, 'reject')}
                             disabled={actionLoading}
@@ -151,13 +151,13 @@ export default function ExpensesAdminPage() {
                 )}
             </CardHeader>
             <CardContent className="p-0">
-                
+
                 {/* Filters */}
                 <div className="p-4 flex flex-col md:flex-row gap-3 bg-gray-50/50">
                     <div className="relative flex-1 max-w-sm">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-                        <Input 
-                            placeholder="Search rider name..." 
+                        <Input
+                            placeholder="Search rider name..."
                             className="pl-9 bg-white"
                             value={searchName}
                             onChange={(e) => { setSearchName(e.target.value); setPage(1); }}
@@ -194,7 +194,7 @@ export default function ExpensesAdminPage() {
                         <TableHeader className="bg-gray-50/80">
                             <TableRow>
                                 <TableHead className="w-[50px]">
-                                    <Checkbox 
+                                    <Checkbox
                                         checked={expenses.length > 0 && selectedIds.length === expenses.filter(e => e.status === 'pending').length && expenses.filter(e => e.status === 'pending').length > 0}
                                         onCheckedChange={toggleSelectAll}
                                     />
@@ -220,7 +220,7 @@ export default function ExpensesAdminPage() {
                                 expenses.map(expense => (
                                     <TableRow key={expense.id} className="hover:bg-gray-50/50 transition-colors">
                                         <TableCell>
-                                            <Checkbox 
+                                            <Checkbox
                                                 disabled={expense.status !== 'pending'}
                                                 checked={selectedIds.includes(expense.id)}
                                                 onCheckedChange={(c) => toggleSelect(expense.id, c)}
@@ -263,17 +263,17 @@ export default function ExpensesAdminPage() {
                                                 </Button>
                                                 {expense.status === 'pending' && (
                                                     <>
-                                                        <Button 
-                                                            size="sm" 
-                                                            variant="ghost" 
+                                                        <Button
+                                                            size="sm"
+                                                            variant="ghost"
                                                             onClick={() => handleAction([expense.id], 'approve')}
                                                             className="h-8 w-8 p-0 hover:bg-emerald-50 hover:text-emerald-600"
                                                         >
                                                             <CheckCircle className="h-4 w-4 text-emerald-500" />
                                                         </Button>
-                                                        <Button 
-                                                            size="sm" 
-                                                            variant="ghost" 
+                                                        <Button
+                                                            size="sm"
+                                                            variant="ghost"
                                                             onClick={() => handleAction([expense.id], 'reject')}
                                                             className="h-8 w-8 p-0 hover:bg-red-50 hover:text-red-600"
                                                         >
@@ -295,17 +295,17 @@ export default function ExpensesAdminPage() {
                     <div className="p-4 border-t border-gray-100 flex justify-between items-center bg-gray-50/50">
                         <span className="text-sm text-gray-500">Page {page} of {totalPages}</span>
                         <div className="flex gap-2">
-                            <Button 
-                                variant="outline" 
-                                size="sm" 
+                            <Button
+                                variant="outline"
+                                size="sm"
                                 onClick={() => setPage(p => Math.max(1, p - 1))}
                                 disabled={page === 1}
                             >
                                 Previous
                             </Button>
-                            <Button 
-                                variant="outline" 
-                                size="sm" 
+                            <Button
+                                variant="outline"
+                                size="sm"
                                 onClick={() => setPage(p => Math.min(totalPages, p + 1))}
                                 disabled={page === totalPages}
                             >
@@ -318,9 +318,9 @@ export default function ExpensesAdminPage() {
 
             {/* View Modal */}
             <Dialog open={!!viewExpense} onOpenChange={(open) => !open && setViewExpense(null)}>
-                <DialogContent className="sm:max-w-[425px]">
+                <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto w-[95vw] p-4 md:p-6">
                     <DialogHeader>
-                        <DialogTitle className="capitalize">{viewExpense?.type} Expense Details</DialogTitle>
+                        <DialogTitle className="capitalize text-lg md:text-xl font-bold">{viewExpense?.type} Expense Details</DialogTitle>
                     </DialogHeader>
                     {viewExpense && (
                         <div className="space-y-4 pt-4">
@@ -328,7 +328,7 @@ export default function ExpensesAdminPage() {
                                 <span className="text-sm text-gray-500">Status</span>
                                 {statusBadge(viewExpense.status)}
                             </div>
-                            
+
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
                                     <p className="text-xs text-gray-500 uppercase tracking-widest font-semibold">Amount</p>
@@ -379,9 +379,9 @@ export default function ExpensesAdminPage() {
 
                             <div>
                                 <p className="text-xs text-gray-500 uppercase tracking-widest font-semibold mb-2">Location</p>
-                                <a 
-                                    href={`https://maps.google.com/?q=${viewExpense.latitude},${viewExpense.longitude}`} 
-                                    target="_blank" 
+                                <a
+                                    href={`https://maps.google.com/?q=${viewExpense.latitude},${viewExpense.longitude}`}
+                                    target="_blank"
                                     rel="noreferrer"
                                     className="flex items-center gap-2 text-sm text-blue-600 hover:text-blue-700 font-medium"
                                 >
@@ -395,9 +395,9 @@ export default function ExpensesAdminPage() {
                                     <p className="text-xs text-gray-500 uppercase tracking-widest font-semibold mb-2">Receipt / Proof</p>
                                     {/* eslint-disable-next-line @next/next/no-img-element */}
                                     <a href={viewExpense.image} target="_blank" rel="noreferrer">
-                                        <img 
-                                            src={viewExpense.image} 
-                                            alt="Receipt" 
+                                        <img
+                                            src={viewExpense.image}
+                                            alt="Receipt"
                                             className="w-full h-auto max-h-[300px] object-contain rounded-lg border border-gray-200 cursor-pointer hover:opacity-90 transition-opacity"
                                         />
                                     </a>
@@ -406,7 +406,7 @@ export default function ExpensesAdminPage() {
 
                             {viewExpense.status === 'pending' && (
                                 <div className="flex gap-3 pt-4 border-t mt-4">
-                                    <Button 
+                                    <Button
                                         className="flex-1 bg-emerald-500 hover:bg-emerald-600"
                                         onClick={() => {
                                             handleAction([viewExpense.id], 'approve');
@@ -416,7 +416,7 @@ export default function ExpensesAdminPage() {
                                     >
                                         Approve
                                     </Button>
-                                    <Button 
+                                    <Button
                                         className="flex-1"
                                         variant="destructive"
                                         onClick={() => {

@@ -26,7 +26,7 @@ export async function GET(request) {
         // Build query
         let query = supabaseAdmin
             .from('rider_expenses')
-            .select('*, vehicles(id, nickname, make, model)', { count: 'exact' })
+            .select('*', { count: 'exact' })
             .eq('rider_id', riderProfile.id)
             .order('created_at', { ascending: false })
 
@@ -39,10 +39,34 @@ export async function GET(request) {
 
         const { data: expenses, count, error } = await query
 
-        if (error) throw error
+        if (error) {
+            console.error('Supabase Query Error:', error)
+            return errorResponse(error.message, 500)
+        }
+
+        // Manually fetch vehicles to avoid schema crash
+        const vehicleIds = expenses.map(e => e.vehicle_id).filter(Boolean)
+        let vehiclesMap = {}
+        if (vehicleIds.length > 0) {
+            const { data: vData } = await supabaseAdmin
+                .from('vehicles')
+                .select('id, nickname, make, model')
+                .in('id', vehicleIds)
+            if (vData) {
+                vehiclesMap = vData.reduce((acc, v) => ({...acc, [v.id]: v}), {})
+            }
+        }
+
+        const formattedExpenses = expenses.map(exp => {
+            const v = vehiclesMap[exp.vehicle_id]
+            return {
+                ...exp,
+                vehicles: v || null
+            }
+        })
 
         return successResponse('Expenses retrieved', {
-            expenses,
+            expenses: formattedExpenses,
             wallet_balance: riderProfile.wallet_balance || 0,
             pagination: {
                 total: count,
@@ -54,6 +78,6 @@ export async function GET(request) {
 
     } catch (err) {
         console.error('List Expenses Error:', err)
-        return errorResponse('Internal Server Error', 500)
+        return errorResponse(err.message || 'Internal Server Error', 500)
     }
 }

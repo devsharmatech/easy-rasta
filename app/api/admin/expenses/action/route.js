@@ -1,11 +1,11 @@
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
-import { verifyAdmin } from '@/lib/auth'
+import { getUserFromRequest } from '@/lib/auth'
 import { successResponse, errorResponse } from '@/lib/apiResponse'
 
 export async function POST(request) {
     try {
-        const admin = await verifyAdmin(request)
-        if (!admin) return errorResponse('Unauthorized', 401)
+        const admin = getUserFromRequest(request)
+        if (!admin || admin.role !== 'admin') return errorResponse('Unauthorized', 401)
 
         const { expense_ids, action } = await request.json()
         

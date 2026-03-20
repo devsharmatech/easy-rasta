@@ -1,11 +1,11 @@
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
-import { verifyAdmin } from '@/lib/auth'
+import { getUserFromRequest } from '@/lib/auth'
 import { successResponse, errorResponse } from '@/lib/apiResponse'
 
 export async function GET(request) {
     try {
-        const admin = await verifyAdmin(request)
-        if (!admin) return errorResponse('Unauthorized', 401)
+        const admin = getUserFromRequest(request)
+        if (!admin || admin.role !== 'admin') return errorResponse('Unauthorized', 401)
 
         const { searchParams } = new URL(request.url)
         const type = searchParams.get('type') // fuel, service, washroom, other
@@ -18,15 +18,14 @@ export async function GET(request) {
         const limit = parseInt(searchParams.get('limit')) || 15
         const offset = (page - 1) * limit
 
-        // Need to join user details for Rider search and vehicle info
+        // Need to join user details for Rider search
         let query = supabaseAdmin
             .from('rider_expenses')
             .select(`
                 *,
                 rider_profiles!inner(
                     users!inner(full_name, mobile)
-                ),
-                vehicles(nickname, make, model)
+                )
             `, { count: 'exact' })
             .order('created_at', { ascending: false })
 
@@ -44,18 +43,34 @@ export async function GET(request) {
 
         const { data, count, error } = await query
 
-        if (error) throw error
+        if (error) {
+            console.error('Supabase Query Error:', error)
+            return errorResponse(error.message, 500)
+        }
+
+        // Manually fetch vehicles to avoid schema crash
+        const vehicleIds = data.map(e => e.vehicle_id).filter(Boolean)
+        let vehiclesMap = {}
+        if (vehicleIds.length > 0) {
+            const { data: vData } = await supabaseAdmin
+                .from('vehicles')
+                .select('id, nickname, make, model')
+                .in('id', vehicleIds)
+            if (vData) {
+                vehiclesMap = vData.reduce((acc, v) => ({...acc, [v.id]: v}), {})
+            }
+        }
 
         // Transform results to lift user details
         const formattedData = data.map(exp => {
             const riderInfo = exp.rider_profiles?.users || {}
+            const v = vehiclesMap[exp.vehicle_id]
             return {
                 ...exp,
                 rider_name: riderInfo.full_name,
                 rider_mobile: riderInfo.mobile,
-                vehicle_details: exp.vehicles ? `${exp.vehicles.make || ''} ${exp.vehicles.model || ''} (${exp.vehicles.nickname || ''})`.trim() : null,
-                rider_profiles: undefined, // cleanup
-                vehicles: undefined
+                vehicle_details: v ? `${v.make || ''} ${v.model || ''} (${v.nickname || ''})`.trim() : null,
+                rider_profiles: undefined // cleanup
             }
         })
 
@@ -71,6 +86,6 @@ export async function GET(request) {
 
     } catch (err) {
         console.error('Admin List Expenses Error:', err)
-        return errorResponse('Internal Server Error', 500)
+        return errorResponse(err.message || 'Internal Server Error', 500)
     }
 }
