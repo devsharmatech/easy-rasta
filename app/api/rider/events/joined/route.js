@@ -77,6 +77,7 @@ export async function GET(request) {
                 } : null,
                 event: p.events ? {
                     ...p.events,
+                    is_user_already_joined: true,
                     rider_profiles: undefined,
                     organizer: {
                         name: p.events.rider_profiles?.users?.full_name || 'Unknown',
