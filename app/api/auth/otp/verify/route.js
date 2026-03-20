@@ -14,30 +14,28 @@ export async function POST(request) {
             return errorResponse('Invalid role for OTP login', 400)
         }
 
-        // 1. Verify OTP (Allow '123456' for testing)
-        if (otp !== '123456') {
-            const { data: logs, error: logError } = await supabaseAdmin
-                .from('otp_logs')
-                .select('*')
-                .eq('mobile', mobile)
-                .eq('otp_code', otp)
-                .eq('is_verified', false)
-                .gt('expires_at', new Date().toISOString())
-                .order('created_at', { ascending: false })
-                .limit(1)
+        // 1. Verify OTP
+        const { data: logs, error: logError } = await supabaseAdmin
+            .from('otp_logs')
+            .select('*')
+            .eq('mobile', mobile)
+            .eq('otp_code', otp)
+            .eq('is_verified', false)
+            .gt('expires_at', new Date().toISOString())
+            .order('created_at', { ascending: false })
+            .limit(1)
 
-            if (logError || !logs || logs.length === 0) {
-                return errorResponse('Invalid or expired OTP', 400)
-            }
-
-            const logEntry = logs[0]
-
-            // Mark OTP as verified
-            await supabaseAdmin
-                .from('otp_logs')
-                .update({ is_verified: true })
-                .eq('id', logEntry.id)
+        if (logError || !logs || logs.length === 0) {
+            return errorResponse('Invalid or expired OTP', 400)
         }
+
+        const logEntry = logs[0]
+
+        // Mark OTP as verified
+        await supabaseAdmin
+            .from('otp_logs')
+            .update({ is_verified: true })
+            .eq('id', logEntry.id)
 
         // 2. Check if user exists
         let { data: user, error: userError } = await supabaseAdmin
@@ -65,6 +63,10 @@ export async function POST(request) {
                 }
             }
 
+            // Generate a 6-character random alphanumeric code
+            const generatedCode = Math.random().toString(36).substring(2, 8).toUpperCase()
+            const fCode = referral_code || null // Accept existing frontend payload 'referral_code' mapped to 'friend_code'
+
             const { data: newUser, error: createError } = await supabaseAdmin
                 .from('users')
                 .insert({
@@ -73,7 +75,9 @@ export async function POST(request) {
                     full_name,
                     sos_number: sos_number || null,
                     is_verified: true,
-                    is_active: true
+                    is_active: true,
+                    my_code: generatedCode,
+                    friend_code: fCode
                 })
                 .select()
                 .single()
@@ -95,11 +99,31 @@ export async function POST(request) {
                     .from('vendor_profiles')
                     .update({ gst_number })
                     .eq('user_id', user.id)
-            } else if (role === 'rider' && referral_code) {
-                await supabaseAdmin
-                    .from('rider_profiles')
-                    .update({ referral_code })
-                    .eq('user_id', user.id)
+            } else if (role === 'rider') {
+                // Handle referral XP
+                const fCode = referral_code || null;
+                if (fCode) {
+                    try {
+                        const { data: fUser } = await supabaseAdmin.from('users').select('id').eq('my_code', fCode).single()
+                        
+                        if (fUser) {
+                            const { data: fRider } = await supabaseAdmin.from('rider_profiles').select('id').eq('user_id', fUser.id).single()
+                            const { data: nRider } = await supabaseAdmin.from('rider_profiles').select('id').eq('user_id', user.id).single()
+
+                            if (fRider && nRider) {
+                                const { awardXP } = await import('@/lib/xp')
+                                
+                                // Award 100 XP to the friend (referrer)
+                                await awardXP(fRider.id, 'referral_bonus', nRider.id)
+                                
+                                // Award 50 XP to the new rider (referee)
+                                await awardXP(nRider.id, 'referral_bonus', fRider.id, 50)
+                            }
+                        }
+                    } catch (refErr) {
+                        console.error('Referral XP Error:', refErr)
+                    }
+                }
             }
         }
 
