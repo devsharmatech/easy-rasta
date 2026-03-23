@@ -9,15 +9,18 @@ export async function POST(request) {
             return errorResponse('Mobile number is required', 400)
         }
 
-        // Check if user exists to enforce role consistency
-        if (role) {
-            const { data: user } = await supabaseAdmin
-                .from('users')
-                .select('role')
-                .eq('mobile', mobile)
-                .single()
+        let is_already_registered = false;
 
-            if (user && user.role !== role) {
+        // Check if user exists
+        const { data: user } = await supabaseAdmin
+            .from('users')
+            .select('role')
+            .eq('mobile', mobile)
+            .single()
+
+        if (user) {
+            is_already_registered = true;
+            if (role && user.role !== role) {
                 return errorResponse(`Mobile number already registered as ${user.role}`, 400)
             }
         }
@@ -57,7 +60,7 @@ export async function POST(request) {
             // Don't fail the request if SMS fails, just log the error
         }
 
-        return successResponse('OTP sent successfully')
+        return successResponse('OTP sent successfully', { is_already_registered })
 
     } catch (err) {
         console.error(err)

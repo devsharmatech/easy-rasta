@@ -233,15 +233,25 @@ export async function DELETE(request) {
 
         if (!vehicle) return errorResponse('Vehicle not found or not owned by you', 404)
 
+        // Prevent foreign key constraint crash: Detach this vehicle from any expenses first
+        await supabaseAdmin
+            .from('rider_expenses')
+            .update({ vehicle_id: null })
+            .eq('vehicle_id', vehicle_id)
+
         const { error } = await supabaseAdmin
             .from('vehicles')
             .delete()
             .eq('id', vehicle_id)
 
-        if (error) throw error
+        if (error) {
+            console.error('Delete Vehicle Error:', error)
+            return errorResponse(error.message, 500)
+        }
 
         return successResponse('Vehicle deleted successfully')
     } catch (err) {
-        return errorResponse('Internal Server Error', 500)
+        console.error('Vehicle Delete Catch:', err)
+        return errorResponse(err.message || 'Internal Server Error', 500)
     }
 }
