@@ -343,6 +343,8 @@ CREATE TABLE event_stops (
     id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
     event_id uuid REFERENCES events(id) ON DELETE CASCADE,
     stop_name varchar NOT NULL,
+    latitude numeric,
+    longitude numeric,
     stop_time time,
     description text
 );

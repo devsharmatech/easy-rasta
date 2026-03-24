@@ -18,6 +18,7 @@ export async function GET(request) {
                 .from('events')
                 .select(`
                     *,
+                    event_stops(*),
                     rider_profiles:rider_id(
                         id, user_id, total_rides, level, xp,
                         users:user_id(full_name, email, mobile, profile_image_url)
@@ -129,6 +130,7 @@ export async function GET(request) {
             .from('events')
             .select(`
                 *,
+                event_stops(*),
                 rider_profiles:rider_id(
                     id, user_id,
                     users:user_id(full_name, profile_image_url)

@@ -61,6 +61,7 @@ export async function POST(request) {
         const fee = formData.get('fee')
         const route_image_file = formData.get('route_image')
         const featured_image_file = formData.get('featured_image')
+        const stopsStr = formData.get('stops')
 
         if (!title || !date) return errorResponse('Title and date are required', 400)
 
@@ -93,6 +94,27 @@ export async function POST(request) {
             .single()
 
         if (error) throw error
+
+        // Handle Stops
+        if (stopsStr) {
+            try {
+                const stopsArr = JSON.parse(stopsStr)
+                if (Array.isArray(stopsArr) && stopsArr.length > 0) {
+                    const stopsToInsert = stopsArr.map(s => ({
+                        event_id: data.id,
+                        stop_name: s.stop_name || s.location_name || s.name || 'Stop',
+                        latitude: s.lat ? parseFloat(s.lat) : (s.latitude ? parseFloat(s.latitude) : null),
+                        longitude: s.long ? parseFloat(s.long) : (s.longitude ? parseFloat(s.longitude) : null),
+                        stop_time: s.stop_time || null,
+                        description: s.description || null
+                    }))
+                    const { error: stopsError } = await supabaseAdmin.from('event_stops').insert(stopsToInsert)
+                    if (stopsError) console.error('Error inserting event stops:', stopsError)
+                }
+            } catch (e) {
+                console.error('Error parsing stops JSON:', e)
+            }
+        }
 
         // XP Logic: Create Event
         await awardXP(riderProfile.id, 'create_event', data.id)
@@ -151,6 +173,8 @@ export async function PUT(request) {
         const fee = formData.get('fee')
         const route_image_file = formData.get('route_image')
         const featured_image_file = formData.get('featured_image')
+        const stopsStr = formData.get('stops')
+
 
         // Upload new images (only if new files provided)
         const route_image = await uploadFile(route_image_file, 'events/route', user.user_id)
@@ -184,6 +208,33 @@ export async function PUT(request) {
             .single()
 
         if (error) throw error
+
+        // Handle Stops
+        if (stopsStr) {
+            try {
+                let stopsArr = JSON.parse(stopsStr)
+                if (typeof stopsArr === 'string') stopsArr = JSON.parse(stopsArr); // Double parse just in case
+                if (Array.isArray(stopsArr)) {
+                    // Delete old stops
+                    await supabaseAdmin.from('event_stops').delete().eq('event_id', data.id)
+                    
+                    if (stopsArr.length > 0) {
+                        const stopsToInsert = stopsArr.map(s => ({
+                            event_id: data.id,
+                            stop_name: s.stop_name || s.location_name || s.name || 'Stop',
+                            latitude: s.lat ? parseFloat(s.lat) : (s.latitude ? parseFloat(s.latitude) : null),
+                            longitude: s.long ? parseFloat(s.long) : (s.longitude ? parseFloat(s.longitude) : null),
+                            stop_time: s.stop_time || null,
+                            description: s.description || null
+                        }))
+                        const { error: stopsError } = await supabaseAdmin.from('event_stops').insert(stopsToInsert)
+                        if (stopsError) console.error('Error inserting event stops on update:', stopsError)
+                    }
+                }
+            } catch (e) {
+                console.error('Error parsing stops JSON on update:', e)
+            }
+        }
 
         return successResponse('Event updated successfully', data)
 
@@ -222,7 +273,7 @@ export async function GET(request) {
 
             const { data, error } = await supabaseAdmin
                 .from('events')
-                .select('*')
+                .select('*, event_stops(*)')
                 .eq('rider_id', riderProfile.id)
                 .gte('date', today)
                 .order('created_at', { ascending: false })
@@ -262,6 +313,7 @@ export async function GET(request) {
                     vehicles(nickname, type, make, model, image_url),
                     events(
                         *,
+                        event_stops(*),
                         rider_profiles(user_id, total_rides, level, users:user_id(full_name, profile_image_url))
                     )
                 `)
@@ -331,6 +383,7 @@ export async function GET(request) {
             .from('events')
             .select(`
                 *,
+                event_stops(*),
                 rider_profiles!events_rider_id_fkey(user_id, total_rides, level, xp, users!rider_profiles_user_id_fkey(full_name, profile_image_url)),
                 event_participants(
                     rider_id,
