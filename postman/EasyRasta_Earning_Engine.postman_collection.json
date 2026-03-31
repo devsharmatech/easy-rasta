@@ -1,0 +1,1365 @@
+{
+	"info": {
+		"_postman_id": "easy-rasta-earning-engine-v1",
+		"name": "Easy Rasta — Earning Engine",
+		"description": "Complete test suite for the Easy Rasta Earning Engine.\n\n## Setup\n1. Set `base_url` variable (e.g., http://localhost:3000)\n2. Set `rider_token` — JWT from rider login\n3. Set `admin_token` — JWT from admin login\n4. Set `cron_secret` — your CRON_SECRET env value\n\n## Test Order\n1. Fuel Scout → Fuel Verify → Fuel Correct\n2. Toilet Scout → Toilet Verify → Toilet Correct\n3. Receipt → Odometer → Garage Service\n4. Event Check-in → Event RSVP Reward\n5. Sponsorship → Admin Approve\n6. Referral Activate\n7. Bunk Profile → Bunk Offer\n8. Summary\n9. Cooldown Cron",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://localhost:3000",
+			"type": "string"
+		},
+		{
+			"key": "rider_token",
+			"value": "YOUR_RIDER_JWT_TOKEN_HERE",
+			"type": "string"
+		},
+		{
+			"key": "rider_token_2",
+			"value": "SECOND_RIDER_JWT_TOKEN_FOR_VERIFY",
+			"type": "string"
+		},
+		{
+			"key": "admin_token",
+			"value": "YOUR_ADMIN_JWT_TOKEN_HERE",
+			"type": "string"
+		},
+		{
+			"key": "cron_secret",
+			"value": "YOUR_CRON_SECRET_HERE",
+			"type": "string"
+		},
+		{
+			"key": "fuel_report_id",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "toilet_report_id",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "event_id",
+			"value": "YOUR_EVENT_UUID_HERE",
+			"type": "string"
+		},
+		{
+			"key": "vehicle_id",
+			"value": "YOUR_VEHICLE_UUID_HERE",
+			"type": "string"
+		},
+		{
+			"key": "claim_id",
+			"value": "",
+			"type": "string"
+		}
+	],
+	"item": [
+		{
+			"name": "1. Chain of Truth — Fuel",
+			"item": [
+				{
+					"name": "1.1 Fuel Scout (FormData)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var jsonData = pm.response.json();",
+									"if (jsonData.data && jsonData.data.report_id) {",
+									"    pm.collectionVariables.set('fuel_report_id', jsonData.data.report_id);",
+									"    console.log('Saved fuel_report_id:', jsonData.data.report_id);",
+									"}",
+									"",
+									"pm.test('Status is 200', function() {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"pm.test('Response has reward data', function() {",
+									"    pm.expect(jsonData.data).to.have.property('reward_given');",
+									"    pm.expect(jsonData.data).to.have.property('report_id');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{rider_token}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "bunk_place_id",
+									"value": "ChIJtest123",
+									"description": "Google Place ID of the bunk",
+									"type": "text"
+								},
+								{
+									"key": "vehicle_id",
+									"value": "{{vehicle_id}}",
+									"description": "Which vehicle was fueled (optional)",
+									"type": "text"
+								},
+								{
+									"key": "price_petrol",
+									"value": "102.50",
+									"description": "Petrol price per litre",
+									"type": "text"
+								},
+								{
+									"key": "price_diesel",
+									"value": "89.30",
+									"description": "Diesel price per litre",
+									"type": "text"
+								},
+								{
+									"key": "odometer_reading",
+									"value": "15230",
+									"description": "Current odometer reading (km)",
+									"type": "text"
+								},
+								{
+									"key": "latitude",
+									"value": "12.9716",
+									"description": "User's current latitude",
+									"type": "text"
+								},
+								{
+									"key": "longitude",
+									"value": "77.5946",
+									"description": "User's current longitude",
+									"type": "text"
+								},
+								{
+									"key": "bunk_latitude",
+									"value": "12.9716",
+									"description": "Bunk's latitude (for GPS check)",
+									"type": "text"
+								},
+								{
+									"key": "bunk_longitude",
+									"value": "77.5946",
+									"description": "Bunk's longitude (for GPS check)",
+									"type": "text"
+								},
+								{
+									"key": "photo",
+									"description": "Photo of fuel price board (REQUIRED)",
+									"type": "file",
+									"src": ""
+								},
+								{
+									"key": "receipt",
+									"description": "Receipt photo (optional)",
+									"type": "file",
+									"src": ""
+								}
+							]
+						},
+						"url": {
+							"raw": "{{base_url}}/api/mobile/earning/fuel/scout",
+							"host": ["{{base_url}}"],
+							"path": ["api", "mobile", "earning", "fuel", "scout"]
+						},
+						"description": "Submit a new fuel bunk report.\n\n**Reward**: ₹10 (1000 paise)\n\n**Required**: photo, at least one price, GPS\n\n**GPS Rule**: Must be within 100m of bunk (if bunk coords provided)\n\n**Auto-saves** `fuel_report_id` for verify/correct tests."
+					},
+					"response": []
+				},
+				{
+					"name": "1.2 Fuel Verify (JSON)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var jsonData = pm.response.json();",
+									"pm.test('Status is 200', function() {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"pm.test('Response has reward data', function() {",
+									"    pm.expect(jsonData.data).to.have.property('reward_given');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{rider_token_2}}",
+								"description": "Use a DIFFERENT rider token (can't verify own report)",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"report_id\": \"{{fuel_report_id}}\",\n    \"latitude\": 12.9716,\n    \"longitude\": 77.5946,\n    \"verification_result\": true\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/api/mobile/earning/fuel/verify",
+							"host": ["{{base_url}}"],
+							"path": ["api", "mobile", "earning", "fuel", "verify"]
+						},
+						"description": "Verify a fuel report (confirm or dispute).\n\n**Reward**: ₹5 (500 paise)\n\n**Rules**:\n- Must use different rider than scout\n- Must be within 100m of bunk\n- Report must be 24h+ old\n- First verifier wins (atomic)\n\n**verification_result**:\n- `true` = confirmed correct → status 'verified'\n- `false` = disputed → status 'disputed' (opens for correction)\n\n⚠️ **24h cooldown**: You'll get `cooldown` reason if report is less than 24h old."
+					},
+					"response": []
+				},
+				{
+					"name": "1.3 Fuel Correct (FormData)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var jsonData = pm.response.json();",
+									"pm.test('Status is 200', function() {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"pm.test('Response has correction data', function() {",
+									"    pm.expect(jsonData.data).to.have.property('reward_given');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{rider_token_2}}",
+								"description": "Use a different rider (can't correct own report)",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "original_report_id",
+									"value": "{{fuel_report_id}}",
+									"description": "UUID of the disputed fuel report",
+									"type": "text"
+								},
+								{
+									"key": "vehicle_id",
+									"value": "{{vehicle_id}}",
+									"description": "Which vehicle (optional)",
+									"type": "text"
+								},
+								{
+									"key": "price_petrol",
+									"value": "103.00",
+									"description": "Corrected petrol price",
+									"type": "text"
+								},
+								{
+									"key": "price_diesel",
+									"value": "90.00",
+									"description": "Corrected diesel price",
+									"type": "text"
+								},
+								{
+									"key": "odometer_reading",
+									"value": "15250",
+									"description": "Current odometer reading",
+									"type": "text"
+								},
+								{
+									"key": "latitude",
+									"value": "12.9716",
+									"type": "text"
+								},
+								{
+									"key": "longitude",
+									"value": "77.5946",
+									"type": "text"
+								},
+								{
+									"key": "photo",
+									"description": "New photo (REQUIRED)",
+									"type": "file",
+									"src": ""
+								},
+								{
+									"key": "receipt",
+									"description": "New receipt (REQUIRED for correction)",
+									"type": "file",
+									"src": ""
+								}
+							]
+						},
+						"url": {
+							"raw": "{{base_url}}/api/mobile/earning/fuel/correct",
+							"host": ["{{base_url}}"],
+							"path": ["api", "mobile", "earning", "fuel", "correct"]
+						},
+						"description": "Submit a correction for a DISPUTED fuel report.\n\n**Reward**: ₹10 (1000 paise) to corrector\n\n**Effect**: Original scout's reward is FROZEN (debited from wallet)\n\n**Pre-requisite**: Report must have status 'disputed' (verifier said NO)"
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "2. Chain of Truth — Toilet",
+			"item": [
+				{
+					"name": "2.1 Toilet Scout (FormData)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var jsonData = pm.response.json();",
+									"if (jsonData.data && jsonData.data.report_id) {",
+									"    pm.collectionVariables.set('toilet_report_id', jsonData.data.report_id);",
+									"    console.log('Saved toilet_report_id:', jsonData.data.report_id);",
+									"}",
+									"pm.test('Status is 200', function() {",
+									"    pm.response.to.have.status(200);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{rider_token}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "location_name",
+									"value": "Shell Bunk Toilet, MG Road",
+									"description": "Name/description of location",
+									"type": "text"
+								},
+								{
+									"key": "hygiene_level",
+									"value": "clean",
+									"description": "clean | average | dirty",
+									"type": "text"
+								},
+								{
+									"key": "latitude",
+									"value": "12.9750",
+									"type": "text"
+								},
+								{
+									"key": "longitude",
+									"value": "77.6100",
+									"type": "text"
+								},
+								{
+									"key": "photo",
+									"description": "Photo of the toilet (REQUIRED)",
+									"type": "file",
+									"src": ""
+								}
+							]
+						},
+						"url": {
+							"raw": "{{base_url}}/api/mobile/earning/toilet/scout",
+							"host": ["{{base_url}}"],
+							"path": ["api", "mobile", "earning", "toilet", "scout"]
+						},
+						"description": "Submit a new toilet report.\n\n**Reward**: ₹10 (1000 paise)\n\n**Required**: photo, hygiene_level (clean/average/dirty), GPS\n\n**Auto-saves** `toilet_report_id`."
+					},
+					"response": []
+				},
+				{
+					"name": "2.2 Toilet Verify (JSON)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{rider_token_2}}",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"report_id\": \"{{toilet_report_id}}\",\n    \"latitude\": 12.9750,\n    \"longitude\": 77.6100,\n    \"verification_result\": true\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/api/mobile/earning/toilet/verify",
+							"host": ["{{base_url}}"],
+							"path": ["api", "mobile", "earning", "toilet", "verify"]
+						},
+						"description": "Verify a toilet report.\n\n**Reward**: ₹5 (500 paise)\n\n**GPS**: Must be within 50m (stricter than fuel's 100m)\n\n**24h cooldown** applies."
+					},
+					"response": []
+				},
+				{
+					"name": "2.3 Toilet Correct (FormData)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{rider_token_2}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "original_report_id",
+									"value": "{{toilet_report_id}}",
+									"type": "text"
+								},
+								{
+									"key": "hygiene_level",
+									"value": "dirty",
+									"description": "Corrected hygiene level",
+									"type": "text"
+								},
+								{
+									"key": "latitude",
+									"value": "12.9750",
+									"type": "text"
+								},
+								{
+									"key": "longitude",
+									"value": "77.6100",
+									"type": "text"
+								},
+								{
+									"key": "photo",
+									"description": "New photo (REQUIRED)",
+									"type": "file",
+									"src": ""
+								}
+							]
+						},
+						"url": {
+							"raw": "{{base_url}}/api/mobile/earning/toilet/correct",
+							"host": ["{{base_url}}"],
+							"path": ["api", "mobile", "earning", "toilet", "correct"]
+						},
+						"description": "Submit a correction for a disputed toilet report.\n\n**Reward**: ₹10 (1000 paise)\n\n**Pre-req**: Report must be status 'disputed'."
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "3. Receipt, Odometer, Garage",
+			"item": [
+				{
+					"name": "3.1 Receipt Upload (FormData)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{rider_token}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "receipt",
+									"description": "Receipt photo (REQUIRED)",
+									"type": "file",
+									"src": ""
+								},
+								{
+									"key": "vehicle_id",
+									"value": "{{vehicle_id}}",
+									"description": "Which vehicle was fueled (optional)",
+									"type": "text"
+								},
+								{
+									"key": "bunk_name",
+									"value": "HP Fuel Station, Koramangala",
+									"description": "OCR-extracted or user input",
+									"type": "text"
+								},
+								{
+									"key": "amount_detected",
+									"value": "1500.00",
+									"description": "Amount detected from receipt OCR",
+									"type": "text"
+								},
+								{
+									"key": "timestamp_detected",
+									"value": "2026-03-31T10:30:00Z",
+									"description": "Timestamp from receipt OCR",
+									"type": "text"
+								},
+								{
+									"key": "latitude",
+									"value": "12.9300",
+									"description": "User's current latitude",
+									"type": "text"
+								},
+								{
+									"key": "longitude",
+									"value": "77.6200",
+									"description": "User's current longitude",
+									"type": "text"
+								},
+								{
+									"key": "target_latitude",
+									"value": "12.9302",
+									"description": "Bunk latitude for GPS check (optional)",
+									"type": "text"
+								},
+								{
+									"key": "target_longitude",
+									"value": "77.6201",
+									"description": "Bunk longitude for GPS check (optional)",
+									"type": "text"
+								}
+							]
+						},
+						"url": {
+							"raw": "{{base_url}}/api/mobile/earning/receipt",
+							"host": ["{{base_url}}"],
+							"path": ["api", "mobile", "earning", "receipt"]
+						},
+						"description": "Upload a fuel receipt for reward.\n\n**Reward**: ₹5 (500 paise)\n\n**GPS**: Within 300m of bunk (if target coords provided)\n\n**Dedup**: SHA-256 hash prevents same receipt from being submitted twice."
+					},
+					"response": []
+				},
+				{
+					"name": "3.2 Odometer Reading (FormData)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{rider_token}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "reading",
+									"value": "16000",
+									"description": "Current odometer reading in km (must be > last reading)",
+									"type": "text"
+								},
+								{
+									"key": "vehicle_id",
+									"value": "{{vehicle_id}}",
+									"description": "Vehicle UUID (optional)",
+									"type": "text"
+								},
+								{
+									"key": "ocr_extracted",
+									"value": "true",
+									"description": "'true' if OCR-extracted, 'false' if manual",
+									"type": "text"
+								},
+								{
+									"key": "photo",
+									"description": "Odometer photo (optional)",
+									"type": "file",
+									"src": ""
+								}
+							]
+						},
+						"url": {
+							"raw": "{{base_url}}/api/mobile/earning/odometer",
+							"host": ["{{base_url}}"],
+							"path": ["api", "mobile", "earning", "odometer"]
+						},
+						"description": "Submit an odometer reading.\n\n**Reward**: ₹5 (500 paise)\n\n**Milestones**: Every 1000km → additional ₹5\n\n**Validation**: Reading must be higher than last saved reading."
+					},
+					"response": []
+				},
+				{
+					"name": "3.3 Garage Service Reward (FormData)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{rider_token}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "service_type",
+									"value": "oil_bike",
+									"description": "oil_bike | oil_car | tyre_bike | tyre_car | general",
+									"type": "text"
+								},
+								{
+									"key": "vehicle_id",
+									"value": "{{vehicle_id}}",
+									"description": "Vehicle UUID (REQUIRED)",
+									"type": "text"
+								},
+								{
+									"key": "bill_photo",
+									"description": "Service bill photo (REQUIRED)",
+									"type": "file",
+									"src": ""
+								}
+							]
+						},
+						"url": {
+							"raw": "{{base_url}}/api/mobile/earning/garage/service-reward",
+							"host": ["{{base_url}}"],
+							"path": ["api", "mobile", "earning", "garage", "service-reward"]
+						},
+						"description": "Claim a reward for vehicle service.\n\n**Reward**: ₹5 (500 paise)\n\n**Service Intervals (minimum wait):**\n- oil_bike: 90 days\n- oil_car: 180 days\n- tyre_bike: 180 days\n- tyre_car: 365 days\n- general: 30 days"
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "4. Events",
+			"item": [
+				{
+					"name": "4.1 Event Check-in (JSON)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{rider_token}}",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"event_id\": \"{{event_id}}\",\n    \"latitude\": 12.9716,\n    \"longitude\": 77.5946\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/api/mobile/earning/event-checkin",
+							"host": ["{{base_url}}"],
+							"path": ["api", "mobile", "earning", "event-checkin"]
+						},
+						"description": "GPS check-in at an event.\n\n**Reward**: ₹5 (500 paise)\n\n**GPS**: Within 200m of event meeting point\n\n**Milestones (total check-ins):**\n- 10 → ₹20 bonus\n- 25 → ₹50 bonus\n- 50 → ₹100 bonus\n\n**One check-in per event per user.**"
+					},
+					"response": []
+				},
+				{
+					"name": "4.2 Event RSVP Creator Reward (JSON)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{rider_token}}",
+								"description": "Token of the user JOINING the event (not the creator)",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"event_id\": \"{{event_id}}\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/api/mobile/earning/event-rsvp-reward",
+							"host": ["{{base_url}}"],
+							"path": ["api", "mobile", "earning", "event-rsvp-reward"]
+						},
+						"description": "Called when a rider joins an event — rewards the EVENT CREATOR.\n\n**Reward**: ₹2 (200 paise) per RSVP to the creator\n\n**Cap**: Max ₹40 (4000 paise) per event\n\n**Note**: Creator cannot earn from joining their own event."
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "5. Sponsorship",
+			"item": [
+				{
+					"name": "5.1 Submit Sponsorship Claim (FormData)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var jsonData = pm.response.json();",
+									"if (jsonData.data && jsonData.data.claim_id) {",
+									"    pm.collectionVariables.set('claim_id', jsonData.data.claim_id);",
+									"    console.log('Saved claim_id:', jsonData.data.claim_id);",
+									"}",
+									"pm.test('Status is 200', function() {",
+									"    pm.response.to.have.status(200);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{rider_token}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "bill",
+									"description": "Bill/invoice photo (REQUIRED)",
+									"type": "file",
+									"src": ""
+								},
+								{
+									"key": "latitude",
+									"value": "12.9716",
+									"type": "text"
+								},
+								{
+									"key": "longitude",
+									"value": "77.5946",
+									"type": "text"
+								}
+							]
+						},
+						"url": {
+							"raw": "{{base_url}}/api/mobile/earning/sponsorship",
+							"host": ["{{base_url}}"],
+							"path": ["api", "mobile", "earning", "sponsorship"]
+						},
+						"description": "Submit a sponsorship reimbursement claim.\n\n**Tiers (based on total event check-ins):**\n- 25–49 → ₹750\n- 50–99 → ₹1,500\n- 100+ → ₹2,500\n\n**Monthly cap**: ₹15,000\n\n**Requires admin approval**. Saves `claim_id`."
+					},
+					"response": []
+				},
+				{
+					"name": "5.2 List My Sponsorship Claims (GET)",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{rider_token}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/mobile/earning/sponsorship",
+							"host": ["{{base_url}}"],
+							"path": ["api", "mobile", "earning", "sponsorship"]
+						},
+						"description": "List all sponsorship claims for the logged-in rider."
+					},
+					"response": []
+				},
+				{
+					"name": "5.3 Admin — List All Claims (GET)",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{admin_token}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/admin/sponsorship?status=pending",
+							"host": ["{{base_url}}"],
+							"path": ["api", "admin", "sponsorship"],
+							"query": [
+								{
+									"key": "status",
+									"value": "pending",
+									"description": "Filter: pending | approved | rejected | flagged"
+								}
+							]
+						},
+						"description": "Admin: List all sponsorship claims with optional status filter."
+					},
+					"response": []
+				},
+				{
+					"name": "5.4 Admin — Approve Claim (JSON)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{admin_token}}",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"claim_id\": \"{{claim_id}}\",\n    \"action\": \"approve\",\n    \"admin_note\": \"Verified bill and check-in history\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/api/admin/sponsorship",
+							"host": ["{{base_url}}"],
+							"path": ["api", "admin", "sponsorship"]
+						},
+						"description": "Admin: Approve or reject a sponsorship claim.\n\n**action**: `approve` or `reject`\n\n**On approve**: Wallet is credited immediately via processReward."
+					},
+					"response": []
+				},
+				{
+					"name": "5.5 Admin — Reject Claim (JSON)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{admin_token}}",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"claim_id\": \"{{claim_id}}\",\n    \"action\": \"reject\",\n    \"admin_note\": \"Bill does not match the rider's check-in zone\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/api/admin/sponsorship",
+							"host": ["{{base_url}}"],
+							"path": ["api", "admin", "sponsorship"]
+						},
+						"description": "Admin: Reject a sponsorship claim."
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "6. Referral",
+			"item": [
+				{
+					"name": "6.1 Referral Activate (JSON)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{rider_token}}",
+								"description": "Token of the NEW user (referred user)",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"action_type\": \"fuel_scout\",\n    \"action_reference_id\": \"{{fuel_report_id}}\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/api/mobile/earning/referral/activate",
+							"host": ["{{base_url}}"],
+							"path": ["api", "mobile", "earning", "referral", "activate"]
+						},
+						"description": "Trigger referral reward on user's FIRST qualifying action.\n\n**Reward**:\n- Referrer: ₹10 (1000 paise)\n- New user: ₹10 (1000 paise)\n\n**Rules**:\n- 30-day attribution window\n- Max 2-level chain\n- Same device/phone → blocked\n- Referrer trust <70 within 7 days → frozen\n\n**Pre-req**: User must have `friend_code` or `referred_by_user_id`."
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "7. Bunk Profile & Offers",
+			"item": [
+				{
+					"name": "7.1 Bunk Profile (FormData)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{rider_token}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "place_id",
+									"value": "ChIJbunk456",
+									"description": "Google Place ID of the bunk (REQUIRED)",
+									"type": "text"
+								},
+								{
+									"key": "brand",
+									"value": "Indian Oil",
+									"description": "Fuel brand",
+									"type": "text"
+								},
+								{
+									"key": "display_name",
+									"value": "IOCL Station, HSR Layout",
+									"description": "Display name of bunk",
+									"type": "text"
+								},
+								{
+									"key": "amenities",
+									"value": "[{\"type\": \"air_pump\"}, {\"type\": \"food\"}]",
+									"description": "JSON array of amenities. Types: air_pump, ev_charging, food, 24hr_open, tyre_repair, oil_service, car_wash",
+									"type": "text"
+								},
+								{
+									"key": "offer_text",
+									"value": "Free air pump for all vehicles",
+									"description": "An offer text (helps complete full profile)",
+									"type": "text"
+								},
+								{
+									"key": "amenity_photo_air_pump",
+									"description": "Photo for air_pump amenity (key = amenity_photo_{type})",
+									"type": "file",
+									"src": ""
+								},
+								{
+									"key": "amenity_photo_food",
+									"description": "Photo for food amenity",
+									"type": "file",
+									"src": ""
+								}
+							]
+						},
+						"url": {
+							"raw": "{{base_url}}/api/mobile/earning/bunk-profile",
+							"host": ["{{base_url}}"],
+							"path": ["api", "mobile", "earning", "bunk-profile"]
+						},
+						"description": "Submit/update bunk profile with amenities.\n\n**Rewards**:\n- Per amenity (with photo): ₹3 (300 paise)\n- Full profile (brand + 2 amenities + 1 offer): ₹15 (1500 paise)\n\n**Amenity photo key format**: `amenity_photo_{type}`\n\n**Amenity types**: air_pump, ev_charging, food, 24hr_open, tyre_repair, oil_service, car_wash\n\n**Expiry**:\n- food/tyre_repair/oil_service: 90 days\n- 24hr_open: 180 days\n- air_pump/ev_charging/car_wash: permanent"
+					},
+					"response": []
+				},
+				{
+					"name": "7.2 Bunk Offer (FormData)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{rider_token}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "place_id",
+									"value": "ChIJbunk456",
+									"description": "Google Place ID (REQUIRED)",
+									"type": "text"
+								},
+								{
+									"key": "offer_text",
+									"value": "10% off on diesel today only!",
+									"description": "Offer description (REQUIRED)",
+									"type": "text"
+								},
+								{
+									"key": "ocr_text",
+									"value": "DIESEL 10% OFF - VALID TODAY",
+									"description": "OCR-extracted text from photo (optional)",
+									"type": "text"
+								},
+								{
+									"key": "photo",
+									"description": "Photo of the offer board (REQUIRED)",
+									"type": "file",
+									"src": ""
+								}
+							]
+						},
+						"url": {
+							"raw": "{{base_url}}/api/mobile/earning/bunk-offer",
+							"host": ["{{base_url}}"],
+							"path": ["api", "mobile", "earning", "bunk-offer"]
+						},
+						"description": "Submit a community-spotted bunk offer.\n\n**Reward**: ₹5 (500 paise)\n\n**Auto-expires**: 7 days\n\n**Dedup**: Photo hash checked."
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "8. Earning Summary",
+			"item": [
+				{
+					"name": "8.1 Get Earning Summary (GET)",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{rider_token}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/mobile/earning/summary?limit=20&offset=0",
+							"host": ["{{base_url}}"],
+							"path": ["api", "mobile", "earning", "summary"],
+							"query": [
+								{
+									"key": "limit",
+									"value": "20",
+									"description": "Number of transactions to return (default 20)"
+								},
+								{
+									"key": "offset",
+									"value": "0",
+									"description": "Offset for pagination (default 0)"
+								}
+							]
+						},
+						"description": "Get complete earning summary dashboard.\n\n**Returns**:\n- `wallet_balance_rupees` — display-ready balance in ₹\n- `wallet_balance_paise` — balance in paise\n- `trust_score` — 0-100\n- `scout_status` — 'active' or 'restricted'\n- `daily_earned_paise` — earned today (capped actions)\n- `daily_cap_paise` — 5000 (₹50)\n- `daily_remaining_paise` — remaining today\n- `total_transactions` — lifetime count\n- `transactions[]` — recent transaction history"
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "9. Cooldown Cron",
+			"item": [
+				{
+					"name": "9.1 Trigger Cooldown Notifications (GET)",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{cron_secret}}",
+								"description": "CRON_SECRET from env",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/cron/cooldown-notify",
+							"host": ["{{base_url}}"],
+							"path": ["api", "cron", "cooldown-notify"]
+						},
+						"description": "Trigger cooldown push notifications.\n\nFinds fuel reports pending verification 24h+ and notifies riders within 2km.\n\n**Auth**: `Bearer CRON_SECRET` (not a JWT)\n\n**Typically called by Vercel Cron**, but can be manually triggered.\n\n**Returns**: count of stale reports and notified riders."
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "10. Edge Case Tests",
+			"item": [
+				{
+					"name": "10.1 Fuel Scout — Missing Photo",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{rider_token}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "price_petrol",
+									"value": "102.50",
+									"type": "text"
+								},
+								{
+									"key": "latitude",
+									"value": "12.9716",
+									"type": "text"
+								},
+								{
+									"key": "longitude",
+									"value": "77.5946",
+									"type": "text"
+								}
+							]
+						},
+						"url": {
+							"raw": "{{base_url}}/api/mobile/earning/fuel/scout",
+							"host": ["{{base_url}}"],
+							"path": ["api", "mobile", "earning", "fuel", "scout"]
+						},
+						"description": "**Expected**: 200 with `reward_given: false, reason: 'missing_photo'`\n\nShould NOT throw 500."
+					},
+					"response": []
+				},
+				{
+					"name": "10.2 Fuel Verify — Self Verification",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{rider_token}}",
+								"description": "SAME rider who scouted",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"report_id\": \"{{fuel_report_id}}\",\n    \"latitude\": 12.9716,\n    \"longitude\": 77.5946,\n    \"verification_result\": true\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/api/mobile/earning/fuel/verify",
+							"host": ["{{base_url}}"],
+							"path": ["api", "mobile", "earning", "fuel", "verify"]
+						},
+						"description": "**Expected**: 200 with `reward_given: false, reason: 'self_verification'`\n\nCannot verify your own report."
+					},
+					"response": []
+				},
+				{
+					"name": "10.3 Fuel Scout — GPS Out of Range",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{rider_token}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "price_petrol",
+									"value": "102.00",
+									"type": "text"
+								},
+								{
+									"key": "latitude",
+									"value": "12.9716",
+									"description": "User in Bangalore",
+									"type": "text"
+								},
+								{
+									"key": "longitude",
+									"value": "77.5946",
+									"type": "text"
+								},
+								{
+									"key": "bunk_latitude",
+									"value": "28.6139",
+									"description": "Bunk in Delhi (thousands of km away)",
+									"type": "text"
+								},
+								{
+									"key": "bunk_longitude",
+									"value": "77.2090",
+									"type": "text"
+								},
+								{
+									"key": "photo",
+									"type": "file",
+									"src": ""
+								}
+							]
+						},
+						"url": {
+							"raw": "{{base_url}}/api/mobile/earning/fuel/scout",
+							"host": ["{{base_url}}"],
+							"path": ["api", "mobile", "earning", "fuel", "scout"]
+						},
+						"description": "**Expected**: 200 — report IS saved but `reward_given: false, reason: 'gps_out_of_range'`\n\nFraud flag logged for GPS mismatch."
+					},
+					"response": []
+				},
+				{
+					"name": "10.4 Odometer — Lower Than Last",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{rider_token}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "reading",
+									"value": "100",
+									"description": "Very low reading (should fail if user already submitted higher)",
+									"type": "text"
+								}
+							]
+						},
+						"url": {
+							"raw": "{{base_url}}/api/mobile/earning/odometer",
+							"host": ["{{base_url}}"],
+							"path": ["api", "mobile", "earning", "odometer"]
+						},
+						"description": "**Expected**: 200 with `reward_given: false, reason: 'odometer_not_increasing'`"
+					},
+					"response": []
+				},
+				{
+					"name": "10.5 Unauthorized — No Token",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/mobile/earning/summary",
+							"host": ["{{base_url}}"],
+							"path": ["api", "mobile", "earning", "summary"]
+						},
+						"description": "**Expected**: 401 Unauthorized\n\nNo Authorization header provided."
+					},
+					"response": []
+				},
+				{
+					"name": "10.6 Sponsorship — Not Enough Check-ins",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{rider_token}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "bill",
+									"type": "file",
+									"src": ""
+								},
+								{
+									"key": "latitude",
+									"value": "12.9716",
+									"type": "text"
+								},
+								{
+									"key": "longitude",
+									"value": "77.5946",
+									"type": "text"
+								}
+							]
+						},
+						"url": {
+							"raw": "{{base_url}}/api/mobile/earning/sponsorship",
+							"host": ["{{base_url}}"],
+							"path": ["api", "mobile", "earning", "sponsorship"]
+						},
+						"description": "**Expected** (if < 25 check-ins): 200 with `reward_given: false, reason: 'insufficient_checkins'`"
+					},
+					"response": []
+				}
+			]
+		}
+	]
+}

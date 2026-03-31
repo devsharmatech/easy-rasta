@@ -143,6 +143,35 @@ export async function POST(request, { params }) {
                     }
                 }).catch(err => console.error('[Notify DB Error]', err))
             }).catch(err => console.error('[Notify Error]', err))
+
+            // --- RSVP Creator Reward: ₹2 per join (non-blocking) ---
+            try {
+                const { data: eventForReward } = await supabaseAdmin
+                    .from('events')
+                    .select('rider_id')
+                    .eq('id', event_id)
+                    .single()
+                if (eventForReward?.rider_id) {
+                    const { data: creatorProfile } = await supabaseAdmin
+                        .from('rider_profiles')
+                        .select('user_id')
+                        .eq('id', eventForReward.rider_id)
+                        .single()
+                    if (creatorProfile && creatorProfile.user_id !== user.user_id) {
+                        const { processReward } = await import('@/lib/earningEngine')
+                        await processReward({
+                            userId: creatorProfile.user_id,
+                            actionType: 'event_rsvp_creator',
+                            amountPaise: 200,
+                            referenceType: 'event',
+                            referenceId: event_id,
+                            metadata: { joined_by: user.user_id }
+                        })
+                    }
+                }
+            } catch (rewardErr) {
+                console.error('[VerifyPayment] RSVP reward error (non-blocking):', rewardErr)
+            }
         }
 
         return successResponse('Payment verified and event joined successfully', {

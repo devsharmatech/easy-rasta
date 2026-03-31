@@ -119,6 +119,31 @@ export async function POST(request) {
                                 // Award 50 XP to the new rider (referee)
                                 await awardXP(nRider.id, 'referral_bonus', fRider.id, 50)
                             }
+
+                            // --- Earning Engine: Set up referral attribution ---
+                            // This enables /api/mobile/earning/referral/activate to
+                            // trigger ₹10 reward for both on first qualifying action
+                            try {
+                                // Mark who referred this user
+                                await supabaseAdmin
+                                    .from('users')
+                                    .update({ referred_by_user_id: fUser.id })
+                                    .eq('id', user.id)
+
+                                // Create referral attribution record (30-day window)
+                                await supabaseAdmin
+                                    .from('referral_attributions')
+                                    .insert({
+                                        referrer_user_id: fUser.id,
+                                        referred_user_id: user.id,
+                                        referral_code: fCode,
+                                        status: 'pending',
+                                        expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+                                        chain_depth: 1
+                                    })
+                            } catch (attrErr) {
+                                console.error('Referral attribution error (non-blocking):', attrErr)
+                            }
                         }
                     } catch (refErr) {
                         console.error('Referral XP Error:', refErr)

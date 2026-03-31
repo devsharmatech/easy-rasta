@@ -5,7 +5,8 @@ import { useRouter, usePathname } from 'next/navigation'
 import Link from 'next/link'
 import {
     LogOut, LayoutDashboard, Store, Bike, Calendar, ShieldCheck, Star,
-    Settings, Menu, Package, Bell, Mail, ChevronRight, Sparkles, MapPin, Receipt
+    Settings, Menu, Package, Bell, Mail, ChevronRight, Sparkles, MapPin, Receipt,
+    ShieldAlert, Coins
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
@@ -38,6 +39,17 @@ const navSections = [
             { href: '/admin/expense-settings', icon: Receipt, label: 'Expense Settings' },
             { href: '/admin/reviews', icon: Star, label: 'Reviews' },
             { href: '/admin/push-tester', icon: Bell, label: 'Push Tester' },
+        ]
+    },
+    {
+        title: 'Earning Engine',
+        items: [
+            { href: '/admin/fuel-reports', icon: MapPin, label: 'Fuel Reports' },
+            { href: '/admin/toilet-reports', icon: MapPin, label: 'Toilet Reports' },
+            { href: '/admin/bunk-verifications', icon: Store, label: 'Bunks & Offers' },
+            { href: '/admin/sponsorships', icon: Star, label: 'Sponsorships' },
+            { href: '/admin/fraud-flags', icon: ShieldAlert, label: 'Fraud Flags' },
+            { href: '/admin/reward-config', icon: Coins, label: 'Reward Config' },
         ]
     }
 ]

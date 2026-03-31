@@ -1,6 +1,7 @@
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
 import { getUserFromRequest } from '@/lib/auth'
 import { successResponse, errorResponse } from '@/lib/apiResponse'
+import { processReward } from '@/lib/earningEngine'
 
 // Helper: upload file to Supabase Storage
 const uploadFile = async (file, folder, userId) => {
@@ -77,6 +78,29 @@ export async function POST(request) {
             .single()
 
         if (error) throw error
+
+        // --- First Vehicle Reward: ₹10 (1000 paise) ---
+        try {
+            const { count: vehicleCount } = await supabaseAdmin
+                .from('vehicles')
+                .select('*', { count: 'exact', head: true })
+                .eq('rider_id', riderProfile.id)
+
+            if (vehicleCount === 1) {
+                // This is the first vehicle added
+                await processReward({
+                    userId: user.user_id,
+                    actionType: 'first_vehicle',
+                    amountPaise: 1000,
+                    referenceType: 'vehicle',
+                    referenceId: data.id,
+                    metadata: { type, make, model }
+                })
+            }
+        } catch (rewardErr) {
+            // Reward failure should NOT block vehicle creation
+            console.error('[Garage] First vehicle reward error (non-blocking):', rewardErr)
+        }
 
         return successResponse('Vehicle added successfully', data)
 
