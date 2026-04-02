@@ -1,6 +1,7 @@
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
 import { getUserFromRequest } from '@/lib/auth'
 import { successResponse, errorResponse } from '@/lib/apiResponse'
+import { processReward } from '@/lib/earningEngine'
 
 export async function POST(request, context) {
     try {
@@ -101,7 +102,62 @@ export async function POST(request, context) {
                 .update({ status: 'approved', admin_remark: admin_remark || 'Approved' })
                 .eq('id', requestId)
 
-            return successResponse('Request approved and location added successfully')
+            // ── SCOUT REWARD & VERIFICATION INIT ─────────────────────────
+            let scoutRewardResult = { reward_given: false, reason: 'no_rider' }
+            try {
+                // Get rider user_id
+                const { data: riderProfile } = await supabaseAdmin
+                    .from('rider_profiles')
+                    .select('user_id')
+                    .eq('id', requestData.rider_id)
+                    .single()
+
+                if (riderProfile?.user_id) {
+                    const scoutUserId = riderProfile.user_id
+                    const actionType = mapCategory === 'fuel' ? 'fuel_scout' : 'toilet_scout'
+
+                    // Set last_verified_at and submitted_by_user_id
+                    await supabaseAdmin
+                        .from('vendor_businesses')
+                        .update({
+                            last_verified_at: new Date().toISOString(),
+                            submitted_by_user_id: scoutUserId
+                        })
+                        .eq('id', newBusiness.id)
+
+                    // Issue Scout Reward (₹10 = 1000 paise)
+                    // The function processReward checks trust_score < 70 and daily cap.
+                    scoutRewardResult = await processReward({
+                        userId: scoutUserId,
+                        actionType,
+                        amountPaise: 1000,
+                        referenceType: 'vendor_business',
+                        referenceId: newBusiness.id,
+                        metadata: {
+                            location_type: mapCategory,
+                            business_name: requestData.name
+                        }
+                    })
+
+                    // Link transaction
+                    if (scoutRewardResult.transaction_id) {
+                        await supabaseAdmin
+                            .from('vendor_businesses')
+                            .update({ scout_reward_tx_id: scoutRewardResult.transaction_id })
+                            .eq('id', newBusiness.id)
+                    }
+                }
+            } catch (rewardErr) {
+                // Never break main flow
+                console.error('[Scout Reward Error]:', rewardErr)
+            }
+            // ─────────────────────────────────────────────────────────────
+
+            return successResponse('Request approved and location added successfully', {
+                business_id: newBusiness.id,
+                scout_reward_given: scoutRewardResult.reward_given,
+                scout_reward_reason: scoutRewardResult.reason
+            })
         }
 
     } catch (err) {

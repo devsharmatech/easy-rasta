@@ -1,0 +1,235 @@
+{
+	"info": {
+		"name": "Easy Rasta Verification Engine",
+		"description": "Complete flow for Location Earning Verification Engine from Scout to Corrector.",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "1. Add Location (Fuel Scout)",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer {{rider_token}}",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "formdata",
+					"formdata": [
+						{ "key": "type", "value": "petrol_pump", "type": "text" },
+						{ "key": "name", "value": "HP Petrol Pump", "type": "text" },
+						{ "key": "latitude", "value": "12.971598", "type": "text" },
+						{ "key": "longitude", "value": "77.594562", "type": "text" },
+						{ "key": "message", "value": "Near the metro station", "type": "text" },
+						{ "key": "image", "type": "file", "src": "" }
+					]
+				},
+				"url": {
+					"raw": "{{base_url}}/api/rider/location-requests",
+					"host": ["{{base_url}}"],
+					"path": ["api", "rider", "location-requests"]
+				}
+			}
+		},
+		{
+			"name": "1. Add Location (Washroom Scout)",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer {{rider_token}}",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "formdata",
+					"formdata": [
+						{ "key": "type", "value": "washroom", "type": "text" },
+						{ "key": "name", "value": "Public Sulabh Shauchalaya", "type": "text" },
+						{ "key": "latitude", "value": "12.971598", "type": "text" },
+						{ "key": "longitude", "value": "77.594562", "type": "text" },
+						{ "key": "message", "value": "Inside the park", "type": "text" },
+						{ "key": "hygiene_level", "value": "clean", "type": "text" },
+						{ "key": "is_paid", "value": "true", "type": "text" },
+						{ "key": "price", "value": "5.00", "type": "text" },
+						{ "key": "image", "type": "file", "src": "" }
+					]
+				},
+				"url": {
+					"raw": "{{base_url}}/api/rider/location-requests",
+					"host": ["{{base_url}}"],
+					"path": ["api", "rider", "location-requests"]
+				}
+			}
+		},
+		{
+			"name": "2. Admin Approve & Scout Reward",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer {{admin_token}}",
+						"type": "text"
+					},
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"status\": \"approved\",\n  \"admin_remark\": \"Location verified manually\"\n}"
+				},
+				"url": {
+					"raw": "{{base_url}}/api/admin/location-requests/{{request_id}}/status",
+					"host": ["{{base_url}}"],
+					"path": ["api", "admin", "location-requests", "{{request_id}}", "status"]
+				}
+			}
+		},
+		{
+			"name": "3. Trigger 24H Cron",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer {{cron_secret}}",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "{{base_url}}/api/cron/location-verify-notify",
+					"host": ["{{base_url}}"],
+					"path": ["api", "cron", "location-verify-notify"]
+				}
+			}
+		},
+		{
+			"name": "4. Verify YES (Verifier Reward)",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer {{rider_token_2}}",
+						"type": "text"
+					},
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"location_id\": \"{{vendor_business_id}}\",\n  \"action\": \"YES\",\n  \"latitude\": 12.971598,\n  \"longitude\": 77.594562\n}"
+				},
+				"url": {
+					"raw": "{{base_url}}/api/mobile/earning/location/verify",
+					"host": ["{{base_url}}"],
+					"path": ["api", "mobile", "earning", "location", "verify"]
+				}
+			}
+		},
+		{
+			"name": "4. Verify NO (Validation check only)",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer {{rider_token_2}}",
+						"type": "text"
+					},
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"location_id\": \"{{vendor_business_id}}\",\n  \"action\": \"NO\",\n  \"latitude\": 12.971598,\n  \"longitude\": 77.594562\n}"
+				},
+				"url": {
+					"raw": "{{base_url}}/api/mobile/earning/location/verify",
+					"host": ["{{base_url}}"],
+					"path": ["api", "mobile", "earning", "location", "verify"]
+				}
+			}
+		},
+		{
+			"name": "5. Correct Fuel (Corrector Reward)",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer {{rider_token_2}}",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "formdata",
+					"formdata": [
+						{ "key": "location_id", "value": "{{vendor_business_id}}", "type": "text" },
+						{ "key": "price_petrol", "value": "104.50", "type": "text" },
+						{ "key": "price_diesel", "value": "92.10", "type": "text" },
+						{ "key": "odometer_reading", "value": "54210", "type": "text" },
+						{ "key": "latitude", "value": "12.971598", "type": "text" },
+						{ "key": "longitude", "value": "77.594562", "type": "text" },
+						{ "key": "receipt", "type": "file", "src": "" }
+					]
+				},
+				"url": {
+					"raw": "{{base_url}}/api/mobile/earning/fuel/correct",
+					"host": ["{{base_url}}"],
+					"path": ["api", "mobile", "earning", "fuel", "correct"]
+				}
+			}
+		},
+		{
+			"name": "5. Correct Washroom (Corrector Reward)",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer {{rider_token_2}}",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "formdata",
+					"formdata": [
+						{ "key": "location_id", "value": "{{vendor_business_id}}", "type": "text" },
+						{ "key": "hygiene_level", "value": "clean", "type": "text" },
+						{ "key": "restroom_type", "value": "free", "type": "text" },
+						{ "key": "photo", "type": "file", "src": "" }
+					]
+				},
+				"url": {
+					"raw": "{{base_url}}/api/mobile/earning/toilet/correct",
+					"host": ["{{base_url}}"],
+					"path": ["api", "mobile", "earning", "toilet", "correct"]
+				}
+			}
+		}
+	],
+	"variable": [
+		{ "key": "base_url", "value": "http://localhost:3000" },
+		{ "key": "rider_token", "value": "your_scout_jwt_token_here" },
+		{ "key": "rider_token_2", "value": "your_verifier_jwt_token_here" },
+		{ "key": "admin_token", "value": "your_admin_jwt_token_here" },
+		{ "key": "cron_secret", "value": "your_cron_secret_here" },
+		{ "key": "request_id", "value": "id-from-step-1" },
+		{ "key": "vendor_business_id", "value": "id-from-step-2" }
+	]
+}

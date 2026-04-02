@@ -50,16 +50,28 @@ export async function POST(request) {
         const imageFile = formData.get('image')
         const is_paid = formData.get('is_paid') === 'true'
         const price = formData.get('price')
+        const hygiene_level = formData.get('hygiene_level')
 
-        // Validation
-        if (!type || !['washroom', 'petrol_pump'].includes(type) || !name || !latitude || !longitude || !message || !imageFile) {
-            return errorResponse('Missing required fields, including image image file', 400)
+        // Essential Validations
+        if (!type || !['washroom', 'petrol_pump'].includes(type) || !name || !latitude || !longitude || !message) {
+            return errorResponse('Missing required fields', 400)
+        }
+        if (!imageFile || typeof imageFile === 'string' || !imageFile.name) {
+            return errorResponse('Please select a valid image file to upload', 400)
         }
 
-        if (type === 'washroom' && is_paid && !price) {
-            return errorResponse('Price is required for paid washrooms', 400)
+        // Strict Toilet Add-Location Validation
+        if (type === 'washroom') {
+            if (!hygiene_level || !['clean', 'average', 'dirty'].includes(hygiene_level)) {
+                return errorResponse('hygiene_level (clean/average/dirty) is required for washrooms', 400)
+            }
+            if (is_paid && !price) {
+                return errorResponse('Price is required for paid washrooms', 400)
+            }
         }
 
+        // Fuel rules explicitly declare NO receipt or odometer needed here (automatically ignored if passed)
+        
         const { data: riderProfile, error: profileError } = await supabaseAdmin
             .from('rider_profiles')
             .select('id')
@@ -107,6 +119,7 @@ export async function POST(request) {
                 image_url: imageUrl,
                 is_paid: type === 'washroom' ? Boolean(is_paid) : false,
                 price: (type === 'washroom' && is_paid) ? parseFloat(price) : null,
+                hygiene_level: type === 'washroom' ? hygiene_level : null,
                 status: 'pending'
             })
             .select('id')
