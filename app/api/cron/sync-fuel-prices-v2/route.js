@@ -3,7 +3,7 @@ export const maxDuration = 300 // Allow Vercel up to 5 minutes
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
 import { successResponse, errorResponse } from '@/lib/apiResponse'
 
-const RAPID_API_KEY = process.env.RAPID_API_KEY_V2 || "302d820997msh370971f3d2d0435p17090bjsnf69104fe1b6a"
+const RAPID_API_KEY = process.env.RAPID_API_KEY_V2 || null
 const RAPID_API_HOST = "fuel-petrol-diesel-live-price-india.p.rapidapi.com"
 
 // Helper to fetch JSON from RapidAPI with a specific city header or default list
@@ -56,7 +56,7 @@ async function syncFuel(request) {
 
         // Debug response shape
         console.log(`[CRON-V2] Petrol Res Type: ${typeof petrolRes}, IsArray: ${Array.isArray(petrolRes)}`)
-        
+
         // Extract arrays robustly (Handle { cities: [] }, { data: [] }, or just [])
         const getArray = (res) => {
             if (Array.isArray(res)) return res
@@ -129,7 +129,7 @@ async function syncFuel(request) {
             } catch (err) {
                 console.error(`[CRON-V2] ❌ Error processing city ${cityName}:`, err.message)
             }
-            
+
             // Safety break for Vercel timeouts (300s limit)
             // If we've been running too long, we might want to stop early if it's a huge list
         }
