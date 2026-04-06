@@ -148,7 +148,7 @@ export async function POST(request, { params }) {
             try {
                 const { data: eventForReward } = await supabaseAdmin
                     .from('events')
-                    .select('rider_id')
+                    .select('rider_id, title')
                     .eq('id', event_id)
                     .single()
                 if (eventForReward?.rider_id) {
@@ -169,8 +169,20 @@ export async function POST(request, { params }) {
                         })
                     }
                 }
+
+                // --- Participant Check-In Reward: ₹5 (non-blocking) ---
+                // As requested, managing the check-in reward directly upon joining so no new API is needed
+                const { processReward } = await import('@/lib/earningEngine')
+                await processReward({
+                    userId: user.user_id,
+                    actionType: 'event_checkin',
+                    amountPaise: 500,
+                    referenceType: 'event',
+                    referenceId: event_id,
+                    metadata: { event_title: eventForReward?.title || 'Unknown Event' }
+                })
             } catch (rewardErr) {
-                console.error('[VerifyPayment] RSVP reward error (non-blocking):', rewardErr)
+                console.error('[VerifyPayment] Reward error (non-blocking):', rewardErr)
             }
         }
 

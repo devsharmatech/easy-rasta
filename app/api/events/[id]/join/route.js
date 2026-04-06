@@ -137,6 +137,22 @@ export async function POST(request, { params }) {
                 console.error('[EventJoin] RSVP reward error (non-blocking):', rewardErr)
             }
 
+            // --- Participant Check-In Reward: ₹5 (non-blocking) ---
+            // As requested, managing the check-in reward directly upon joining so no new API is needed
+            try {
+                const { processReward } = await import('@/lib/earningEngine')
+                await processReward({
+                    userId: user.user_id,
+                    actionType: 'event_checkin',
+                    amountPaise: 500,
+                    referenceType: 'event',
+                    referenceId: event_id,
+                    metadata: { event_title: event.title }
+                })
+            } catch (checkinRewardErr) {
+                console.error('[EventJoin] Participant check-in reward error (non-blocking):', checkinRewardErr)
+            }
+
             return successResponse('Joined event successfully')
         }
 

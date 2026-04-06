@@ -1,6 +1,8 @@
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
 import { getUserFromRequest } from '@/lib/auth'
 import { successResponse, errorResponse } from '@/lib/apiResponse'
+import { awardXP } from '@/lib/xp'
+import { processReward } from '@/lib/earningEngine'
 
 const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/jpg']
 const MAX_IMAGE_SIZE = 5 * 1024 * 1024 // 5MB
@@ -126,7 +128,30 @@ export async function POST(request) {
 
         if (error) throw error
 
-        return successResponse('Review added successfully', data)
+        // Award XP: Write Review
+        await awardXP(riderProfile.id, 'write_review', data.id)
+
+        // Award wallet reward (₹5) — only if review text is meaningful (anti-spam)
+        let rewardResult = { reward_given: false, reason: 'review_text_too_short' }
+        if (reviewContent && reviewContent.trim().length >= 10) {
+            rewardResult = await processReward({
+                userId: user.user_id,
+                actionType: 'write_review',
+                amountPaise: 500,
+                referenceType: 'pump_review',
+                referenceId: data.id,
+                metadata: { place_id, rating }
+            })
+        }
+
+        return successResponse('Review added successfully', {
+            ...data,
+            reward: {
+                xp_awarded: true,
+                wallet_reward: rewardResult.reward_given,
+                reason: rewardResult.reason || null
+            }
+        })
     } catch (err) {
         console.error(err)
         return errorResponse('Internal Server Error', 500)

@@ -2,6 +2,7 @@ import { supabaseAdmin } from '@/lib/supabaseAdmin'
 import { getUserFromRequest } from '@/lib/auth'
 import { successResponse, errorResponse } from '@/lib/apiResponse'
 import { awardXP } from '@/lib/xp'
+import { processReward } from '@/lib/earningEngine'
 
 export async function POST(request) {
     try {
@@ -40,6 +41,18 @@ export async function POST(request) {
         }
 
         if (rating < 1 || rating > 5) return errorResponse('Rating must be between 1 and 5', 400)
+
+        // Fraud: Prevent duplicate reviews on same business
+        const { data: existingReview } = await supabaseAdmin
+            .from('vendor_reviews')
+            .select('id')
+            .eq('business_id', business_id)
+            .eq('rider_id', riderProfile.id)
+            .single()
+
+        if (existingReview) {
+            return errorResponse('You have already reviewed this business.', 400)
+        }
 
         // Handle image upload if provided
         let image_url = null
@@ -82,7 +95,27 @@ export async function POST(request) {
         // Award XP: Write Review
         await awardXP(riderProfile.id, 'write_review', data.id)
 
-        return successResponse('Review submitted successfully', data)
+        // Award wallet reward (₹5) — only if review text is meaningful (anti-spam)
+        let rewardResult = { reward_given: false, reason: 'review_text_too_short' }
+        if (review && review.trim().length >= 10) {
+            rewardResult = await processReward({
+                userId: user.user_id,
+                actionType: 'write_review',
+                amountPaise: 500,
+                referenceType: 'vendor_review',
+                referenceId: data.id,
+                metadata: { business_id, rating }
+            })
+        }
+
+        return successResponse('Review submitted successfully', {
+            ...data,
+            reward: {
+                xp_awarded: true,
+                wallet_reward: rewardResult.reward_given,
+                reason: rewardResult.reason || null
+            }
+        })
 
     } catch (err) {
         console.error(err)

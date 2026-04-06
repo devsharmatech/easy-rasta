@@ -64,6 +64,13 @@ export async function POST(request) {
         const stopsStr = formData.get('stops')
 
         if (!title || !date) return errorResponse('Title and date are required', 400)
+        
+        if (fee && fee !== 'null' && fee !== 'undefined' && fee.trim() !== '') {
+            const parsedFee = parseFloat(fee)
+            if (isNaN(parsedFee) || parsedFee < 0) {
+                return errorResponse('Event fee cannot be negative. Please enter a valid amount.', 400)
+            }
+        }
 
         // Upload images
         const route_image = await uploadFile(route_image_file, 'events/route', user.user_id)
@@ -175,6 +182,12 @@ export async function PUT(request) {
         const featured_image_file = formData.get('featured_image')
         const stopsStr = formData.get('stops')
 
+        if (fee && fee !== 'null' && fee !== 'undefined' && fee.trim() !== '') {
+            const parsedFee = parseFloat(fee)
+            if (isNaN(parsedFee) || parsedFee < 0) {
+                return errorResponse('Event fee cannot be negative. Please enter a valid amount.', 400)
+            }
+        }
 
         // Upload new images (only if new files provided)
         const route_image = await uploadFile(route_image_file, 'events/route', user.user_id)

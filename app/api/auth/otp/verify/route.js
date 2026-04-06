@@ -1,6 +1,7 @@
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
 import { signJWT } from '@/lib/auth'
 import { successResponse, errorResponse } from '@/lib/apiResponse'
+import { processReward } from '@/lib/earningEngine'
 
 export async function POST(request) {
     try {
@@ -102,6 +103,7 @@ export async function POST(request) {
             } else if (role === 'rider') {
                 // Handle referral XP
                 const fCode = referral_code || null;
+                let referral_applied = false;
                 if (fCode) {
                     try {
                         const { data: fUser } = await supabaseAdmin.from('users').select('id').eq('my_code', fCode).single()
@@ -122,7 +124,7 @@ export async function POST(request) {
 
                             // --- Earning Engine: Set up referral attribution ---
                             // This enables /api/mobile/earning/referral/activate to
-                            // trigger ₹10 reward for both on first qualifying action
+                             // trigger referrer ₹10 reward on first qualifying action
                             try {
                                 // Mark who referred this user
                                 await supabaseAdmin
@@ -131,7 +133,7 @@ export async function POST(request) {
                                     .eq('id', user.id)
 
                                 // Create referral attribution record (30-day window)
-                                await supabaseAdmin
+                                const { data: attrRecord } = await supabaseAdmin
                                     .from('referral_attributions')
                                     .insert({
                                         referrer_user_id: fUser.id,
@@ -141,6 +143,28 @@ export async function POST(request) {
                                         expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
                                         chain_depth: 1
                                     })
+                                    .select('id')
+                                    .single()
+
+                                // Instant ₹10 credit to new user (no fraud risk at signup)
+                                await processReward({
+                                    userId: user.id,
+                                    actionType: 'referral_new_user',
+                                    amountPaise: 1000,
+                                    referenceType: 'referral_attribution',
+                                    referenceId: attrRecord?.id || null,
+                                    metadata: { referrer_user_id: fUser.id, instant: true }
+                                })
+
+                                // Update attribution with new user's reward status
+                                if (attrRecord?.id) {
+                                    await supabaseAdmin
+                                        .from('referral_attributions')
+                                        .update({ referred_reward_credited: true })
+                                        .eq('id', attrRecord.id)
+                                }
+
+                                referral_applied = true
                             } catch (attrErr) {
                                 console.error('Referral attribution error (non-blocking):', attrErr)
                             }
@@ -169,7 +193,10 @@ export async function POST(request) {
                     role: user.role,
                     full_name: user.full_name,
                     sos_number: user.sos_number
-                }
+                },
+                ...(isNewUser && typeof referral_applied !== 'undefined' && referral_applied ? {
+                    referral_message: 'Referral code applied successfully! Reward credited to your wallet.'
+                } : {})
             }
         )
 

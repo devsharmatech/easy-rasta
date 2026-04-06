@@ -61,7 +61,8 @@ INSERT INTO earning_rewards_config (action_key, category, description, reward_pa
     ('bunk_offer_spotted',  'bunk',         'Community-spotted offer',                     500, false),
     ('sponsorship_tier1',   'sponsorship',  'Reimbursement 25-49 check-ins',             75000, false),
     ('sponsorship_tier2',   'sponsorship',  'Reimbursement 50-99 check-ins',            150000, false),
-    ('sponsorship_tier3',   'sponsorship',  'Reimbursement 100+ check-ins',             250000, false)
+    ('sponsorship_tier3',   'sponsorship',  'Reimbursement 100+ check-ins',             250000, false),
+    ('write_review',        'data_action',  'Write a quality review (min 10 chars)',       500, true)
 ON CONFLICT (action_key) DO NOTHING;
 
 -- ============================================================
