@@ -10,10 +10,10 @@ export async function GET(request) {
             return errorResponse('Unauthorized', 401)
         }
 
-        // 1. Rider profile with user info
+        // 1. Rider profile with user info (added wallet, referral code, and trust score)
         const { data: profile, error: profileError } = await supabaseAdmin
             .from('rider_profiles')
-            .select('*, users:user_id(full_name, mobile, email, profile_image_url)')
+            .select('*, users:user_id(full_name, mobile, email, profile_image_url, wallet_balance, my_code, trust_score)')
             .eq('user_id', user.user_id)
             .single()
 
@@ -62,13 +62,21 @@ export async function GET(request) {
             .select('*', { count: 'exact', head: true })
             .eq('rider_id', profile.id)
 
+        // 8. Reward / Earning History (last 10)
+        const { data: earningHistory } = await supabaseAdmin
+            .from('earning_transactions')
+            .select('id, action_type, amount_paise, status, reference_type, created_at')
+            .eq('user_id', user.user_id)
+            .order('created_at', { ascending: false })
+            .limit(10)
+
         const dashboard = {
             rider: {
                 name: profile.users?.full_name,
                 mobile: profile.users?.mobile,
                 email: profile.users?.email,
                 profile_image: profile.users?.profile_image_url,
-                referral_code: profile.referral_code
+                referral_code: profile.users?.my_code || profile.referral_code
             },
             stats: {
                 xp: profile.xp || 0,
@@ -79,8 +87,18 @@ export async function GET(request) {
                 vehicles: vehicleCount || 0,
                 events_created: eventsCreated || 0,
                 total_orders: totalOrders || 0,
-                reviews_written: reviewsWritten || 0
+                reviews_written: reviewsWritten || 0,
+                wallet_balance: profile.users?.wallet_balance || 0,
+                trust_score: profile.users?.trust_score || 100
             },
+            earning_history: (earningHistory || []).map(t => ({
+                id: t.id,
+                action: t.action_type,
+                amount: t.amount_paise / 100, // Format as rupees for dashboard
+                status: t.status,
+                entity: t.reference_type,
+                date: t.created_at
+            })),
             recent_rides: (recentRides || []).map(r => ({
                 id: r.id,
                 name: r.ride_name,

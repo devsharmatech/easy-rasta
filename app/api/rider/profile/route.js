@@ -11,7 +11,7 @@ export async function GET(request) {
 
         const { data, error } = await supabaseAdmin
             .from('rider_profiles')
-            .select('*, users:user_id(full_name, mobile, email, sos_number, profile_image_url, my_code)')
+            .select('*, users:user_id(full_name, mobile, email, sos_number, profile_image_url, my_code, wallet_balance)')
             .eq('user_id', user.user_id)
             .single()
 
@@ -26,7 +26,8 @@ export async function GET(request) {
             email: userInfo?.email,
             sos_number: userInfo?.sos_number,
             profile_image_url: userInfo?.profile_image_url,
-            referral_code: userInfo?.my_code
+            referral_code: userInfo?.my_code,
+            wallet_balance: userInfo?.wallet_balance || 0
         })
     } catch (err) {
         return errorResponse('Internal Server Error', 500)
@@ -167,7 +168,7 @@ export async function PUT(request) {
         // Fetch updated profile
         const { data: updated, error: fetchError } = await supabaseAdmin
             .from('rider_profiles')
-            .select('*, users:user_id(full_name, mobile, email, sos_number, profile_image_url, my_code)')
+            .select('*, users:user_id(full_name, mobile, email, sos_number, profile_image_url, my_code, wallet_balance)')
             .eq('user_id', user.user_id)
             .single()
 
@@ -182,7 +183,8 @@ export async function PUT(request) {
             email: userInfo?.email,
             sos_number: userInfo?.sos_number,
             profile_image_url: userInfo?.profile_image_url,
-            referral_code: userInfo?.my_code
+            referral_code: userInfo?.my_code,
+            wallet_balance: userInfo?.wallet_balance || 0
         })
 
     } catch (err) {
