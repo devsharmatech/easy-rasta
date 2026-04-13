@@ -3,6 +3,10 @@
         {
             "path": "/api/cron/location-verify-notify",
             "schedule": "0 0 * * *"
+        },
+        {
+            "path": "/api/cron/sync-fuel-prices-v2",
+            "schedule": "0 0 * * *"
         }
     ]
 }
