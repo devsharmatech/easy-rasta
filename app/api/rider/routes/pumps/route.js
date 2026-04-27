@@ -355,13 +355,26 @@ async function enrichPumpsWithCities(pumps) {
         return pumps
     }
 
-    // Build a sorted list (longest names first to avoid partial matches like "Delhi" matching before "New Delhi")
+    // Build a list of all search terms: canonical cities and aliases
     const cityList = knownCities
         .map(c => c.city)
         .filter(Boolean)
-        .sort((a, b) => b.length - a.length)
 
-    console.log(`[GeoCity] Loaded ${cityList.length} known cities for address matching`)
+    const searchTerms = []
+    for (const city of cityList) {
+        searchTerms.push({ term: city.toLowerCase(), canonical: city })
+    }
+    for (const [alias, canonicalStr] of Object.entries(CITY_ALIASES)) {
+        const found = cityList.find(c => c.toLowerCase() === canonicalStr)
+        if (found) {
+            searchTerms.push({ term: alias.toLowerCase(), canonical: found })
+        }
+    }
+    
+    // Sort all terms by length descending to match longest possible names first
+    searchTerms.sort((a, b) => b.term.length - a.term.length)
+
+    console.log(`[GeoCity] Loaded ${searchTerms.length} known cities and aliases for address matching`)
 
     return pumps.map(pump => {
         const address = (pump.address || '').toLowerCase()
@@ -369,26 +382,11 @@ async function enrichPumpsWithCities(pumps) {
 
         const escapeRegExp = (string) => string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 
-        // Check if any known DB city name appears in the pump's address
-        for (const city of cityList) {
-            const regex = new RegExp(`\\b${escapeRegExp(city.toLowerCase())}\\b`, 'i')
+        for (const { term, canonical } of searchTerms) {
+            const regex = new RegExp(`\\b${escapeRegExp(term)}\\b`, 'i')
             if (regex.test(address)) {
-                matchedCity = city
+                matchedCity = canonical
                 break
-            }
-        }
-
-        // If exact match fails, try resolving through aliases
-        if (!matchedCity) {
-            for (const [alias, canonical] of Object.entries(CITY_ALIASES)) {
-                const regex = new RegExp(`\\b${escapeRegExp(alias)}\\b`, 'i')
-                if (regex.test(address)) {
-                    const found = cityList.find(c => c.toLowerCase() === canonical)
-                    if (found) {
-                        matchedCity = found
-                        break
-                    }
-                }
             }
         }
 
