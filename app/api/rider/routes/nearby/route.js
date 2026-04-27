@@ -35,11 +35,11 @@ export async function POST(request) {
 
         const body = await request.json()
         const { lat, lng, latitude, longitude, activeTab = "Fuel", type: typeParam, force_refresh } = body
-        
+
         const centerLat = lat || latitude
         const centerLng = lng || longitude
         const radius = body.radius || 2000 // Default 2km radius
-        
+
         // 'type' param takes precedence, else fallback to 'activeTab'
         const searchResourceType = typeParam || activeTab
 
@@ -61,7 +61,7 @@ export async function POST(request) {
 
         // Map radius to degrees (approximate)
         // 1 degree latitude ~ 111 km
-        const RADIUS_DEG = radius / 111000 * 1.5 
+        const RADIUS_DEG = radius / 111000 * 1.5
         const FRESHNESS_DAYS = 7
 
         const uniquePumps = new Map()
@@ -80,26 +80,26 @@ export async function POST(request) {
 
             if (localPumps && localPumps.length > 0) {
                 localPumps.forEach(p => {
-                     // Basic pythagorean distance check to filter out corner cases of bounding box
-                     const dist = Math.sqrt(Math.pow(p.latitude - centerLat, 2) + Math.pow(p.longitude - centerLng, 2)) * 111000
-                     if (dist <= radius) {
-                         if (!uniquePumps.has(p.place_id)) {
-                             uniquePumps.set(p.place_id, {
-                                 place_id: p.place_id,
-                                 name: p.name,
-                                 latitude: parseFloat(p.latitude),
-                                 longitude: parseFloat(p.longitude),
-                                 address: p.address,
-                                 rating: p.rating ? parseFloat(p.rating) : null,
-                                 user_ratings_total: p.user_ratings_total,
-                                 open_now: null,
-                                 icon: p.icon,
-                                 icon_background_color: p.icon_background_color,
-                                 icon_mask_base_uri: p.icon_mask_base_uri,
-                                 photo_url: p.photo_url
-                             })
-                         }
-                     }
+                    // Basic pythagorean distance check to filter out corner cases of bounding box
+                    const dist = Math.sqrt(Math.pow(p.latitude - centerLat, 2) + Math.pow(p.longitude - centerLng, 2)) * 111000
+                    if (dist <= radius) {
+                        if (!uniquePumps.has(p.place_id)) {
+                            uniquePumps.set(p.place_id, {
+                                place_id: p.place_id,
+                                name: p.name,
+                                latitude: parseFloat(p.latitude),
+                                longitude: parseFloat(p.longitude),
+                                address: p.address,
+                                rating: p.rating ? parseFloat(p.rating) : null,
+                                user_ratings_total: p.user_ratings_total,
+                                open_now: null,
+                                icon: p.icon,
+                                icon_background_color: p.icon_background_color,
+                                icon_mask_base_uri: p.icon_mask_base_uri,
+                                photo_url: p.photo_url
+                            })
+                        }
+                    }
                 })
             }
         }
@@ -108,11 +108,11 @@ export async function POST(request) {
         if (uniquePumps.size === 0 || force_refresh) {
             fetchedFromGoogle = true
             console.log(`[Nearby] Calling Google API for point: ${centerLat},${centerLng}`)
-            
+
             const url = useKeywordSearch
                 ? `https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=${centerLat},${centerLng}&radius=${radius}&keyword=public+toilet+washroom&key=${GOOGLE_API_KEY}`
                 : `https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=${centerLat},${centerLng}&radius=${radius}&type=${type}&key=${GOOGLE_API_KEY}`
-            
+
             let placeRes
             try {
                 placeRes = await fetchWithRetry(url).then(r => r.json())
@@ -235,8 +235,11 @@ async function enrichPumpsWithCities(pumps) {
         const address = (pump.address || '').toLowerCase()
         let matchedCity = null
 
+        const escapeRegExp = (string) => string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+
         for (const city of cityList) {
-            if (address.includes(city.toLowerCase())) {
+            const regex = new RegExp(`\\b${escapeRegExp(city.toLowerCase())}\\b`, 'i')
+            if (regex.test(address)) {
                 matchedCity = city
                 break
             }
@@ -245,7 +248,8 @@ async function enrichPumpsWithCities(pumps) {
         // If exact match fails, try resolving through aliases
         if (!matchedCity) {
             for (const [alias, canonical] of Object.entries(CITY_ALIASES)) {
-                if (address.includes(alias)) {
+                const regex = new RegExp(`\\b${escapeRegExp(alias)}\\b`, 'i')
+                if (regex.test(address)) {
                     const found = cityList.find(c => c.toLowerCase() === canonical)
                     if (found) {
                         matchedCity = found

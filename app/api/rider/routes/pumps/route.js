@@ -367,9 +367,12 @@ async function enrichPumpsWithCities(pumps) {
         const address = (pump.address || '').toLowerCase()
         let matchedCity = null
 
+        const escapeRegExp = (string) => string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+
         // Check if any known DB city name appears in the pump's address
         for (const city of cityList) {
-            if (address.includes(city.toLowerCase())) {
+            const regex = new RegExp(`\\b${escapeRegExp(city.toLowerCase())}\\b`, 'i')
+            if (regex.test(address)) {
                 matchedCity = city
                 break
             }
@@ -378,7 +381,8 @@ async function enrichPumpsWithCities(pumps) {
         // If exact match fails, try resolving through aliases
         if (!matchedCity) {
             for (const [alias, canonical] of Object.entries(CITY_ALIASES)) {
-                if (address.includes(alias)) {
+                const regex = new RegExp(`\\b${escapeRegExp(alias)}\\b`, 'i')
+                if (regex.test(address)) {
                     const found = cityList.find(c => c.toLowerCase() === canonical)
                     if (found) {
                         matchedCity = found
