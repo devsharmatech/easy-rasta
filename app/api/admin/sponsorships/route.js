@@ -3,6 +3,10 @@ import { supabaseAdmin } from '@/lib/supabaseAdmin'
 import { getUserFromRequest } from '@/lib/auth'
 import { processReward } from '@/lib/earningEngine'
 
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
+
 export async function GET(request) {
     try {
         const user = getUserFromRequest(request)

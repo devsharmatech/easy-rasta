@@ -10,6 +10,10 @@ import { getUserFromRequest } from '@/lib/auth'
 import { successResponse, errorResponse } from '@/lib/apiResponse'
 import { processReward } from '@/lib/earningEngine'
 
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
+
 const RSVP_REWARD_PAISE = 200   // ₹2 per RSVP
 const MAX_REWARD_PAISE = 4000    // ₹40 max per event
 

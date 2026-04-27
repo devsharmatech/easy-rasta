@@ -4,6 +4,10 @@ import { successResponse, errorResponse } from '@/lib/apiResponse'
 import { awardXP } from '@/lib/xp'
 import { processReward } from '@/lib/earningEngine'
 
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
+
 const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/jpg']
 const MAX_IMAGE_SIZE = 5 * 1024 * 1024 // 5MB
 

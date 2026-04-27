@@ -10,6 +10,10 @@ import { successResponse, errorResponse } from '@/lib/apiResponse'
 import { processReward } from '@/lib/earningEngine'
 import { checkOdometerValid } from '@/lib/antifraud'
 
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
+
 const REWARD_PAISE = 500   // ₹5
 const MILESTONE_PAISE = 500 // ₹5 per 1000km milestone
 const MILESTONE_KM = 1000

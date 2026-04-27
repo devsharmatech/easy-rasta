@@ -10,6 +10,10 @@ import { processReward } from '@/lib/earningEngine'
 import { checkGPS } from '@/lib/antifraud'
 import { GPS_RADIUS } from '@/lib/geoUtils'
 
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
+
 const REWARD_PAISE = 500 // ₹5
 
 export async function POST(request) {

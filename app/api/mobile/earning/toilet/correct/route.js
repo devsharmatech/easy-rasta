@@ -11,6 +11,10 @@ import { getUserFromRequest } from '@/lib/auth'
 import { successResponse, errorResponse } from '@/lib/apiResponse'
 import { processReward, freezeTransaction } from '@/lib/earningEngine'
 
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
+
 const REWARD_PAISE = 1000 // ₹10
 
 // Helper: upload file

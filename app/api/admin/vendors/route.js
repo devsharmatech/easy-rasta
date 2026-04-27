@@ -3,6 +3,10 @@ import { supabaseAdmin } from '@/lib/supabaseAdmin'
 import { getUserFromRequest } from '@/lib/auth'
 import { sendPushNotification } from '@/lib/notificationHelper'
 
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
+
 // Helper: safe query
 async function safeQuery(fn) {
     try { return await fn() }

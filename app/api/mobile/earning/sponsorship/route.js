@@ -18,6 +18,10 @@ import { successResponse, errorResponse } from '@/lib/apiResponse'
 import { processReward } from '@/lib/earningEngine'
 import { logFraudFlag } from '@/lib/antifraud'
 
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
+
 const MONTHLY_CAP_PAISE = 1500000 // ₹15,000
 
 const TIERS = {

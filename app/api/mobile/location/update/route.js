@@ -2,6 +2,10 @@ import { getUserFromRequest } from '@/lib/auth'
 import { successResponse, errorResponse } from '@/lib/apiResponse'
 import { adminDatabase } from '@/lib/firebase'
 
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
+
 export async function PUT(request) {
     try {
         const user = getUserFromRequest(request)

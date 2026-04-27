@@ -2,6 +2,10 @@ import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
 import { getUserFromRequest } from '@/lib/auth'
 
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
+
 async function safeQuery(fn) {
     try { return await fn() }
     catch (e) { console.error('Query error:', e.message); return { data: null, error: e } }

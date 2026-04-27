@@ -2,6 +2,10 @@ import { supabaseAdmin } from '@/lib/supabaseAdmin'
 import { getUserFromRequest } from '@/lib/auth'
 import { successResponse, errorResponse } from '@/lib/apiResponse'
 
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
+
 const GOOGLE_API_KEY = process.env.GOOGLE_API_KEY || null
 
 // Utility to retry fetches if APIs randomly drop connection
@@ -192,6 +196,29 @@ export async function POST(request) {
 
 // --- HELPER FUNCTIONS --- //
 
+const CITY_ALIASES = {
+    'bengaluru': 'bangalore',
+    'bangalore': 'bengaluru',
+    'gurugram': 'gurgaon',
+    'gurgaon': 'gurugram',
+    'mumbai': 'bombay',
+    'bombay': 'mumbai',
+    'chennai': 'madras',
+    'madras': 'chennai',
+    'kolkata': 'calcutta',
+    'calcutta': 'kolkata',
+    'prayagraj': 'allahabad',
+    'allahabad': 'prayagraj',
+    'puducherry': 'pondicherry',
+    'pondicherry': 'puducherry',
+    'thiruvananthapuram': 'trivandrum',
+    'trivandrum': 'thiruvananthapuram',
+    'mysuru': 'mysore',
+    'mysore': 'mysuru',
+    'kochi': 'cochin',
+    'cochin': 'kochi'
+};
+
 async function enrichPumpsWithCities(pumps) {
     const { data: knownCities } = await supabaseAdmin
         .from('fuel_prices')
@@ -212,6 +239,19 @@ async function enrichPumpsWithCities(pumps) {
             if (address.includes(city.toLowerCase())) {
                 matchedCity = city
                 break
+            }
+        }
+
+        // If exact match fails, try resolving through aliases
+        if (!matchedCity) {
+            for (const [alias, canonical] of Object.entries(CITY_ALIASES)) {
+                if (address.includes(alias)) {
+                    const found = cityList.find(c => c.toLowerCase() === canonical)
+                    if (found) {
+                        matchedCity = found
+                        break
+                    }
+                }
             }
         }
 
@@ -242,6 +282,10 @@ async function enrichPumpsWithLocalPrices(pumps) {
         if (pump.city) {
             const pumpCity = pump.city.toLowerCase().trim()
             matchedPrice = pricesByCity.get(pumpCity)
+
+            if (!matchedPrice && CITY_ALIASES[pumpCity]) {
+                matchedPrice = pricesByCity.get(CITY_ALIASES[pumpCity])
+            }
 
             if (!matchedPrice) {
                 for (const [dbCity, row] of pricesByCity) {

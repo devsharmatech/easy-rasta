@@ -3,6 +3,10 @@ import { getUserFromRequest } from '@/lib/auth'
 import { successResponse, errorResponse } from '@/lib/apiResponse'
 import { awardXP } from '@/lib/xp'
 
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
+
 // Helper: upload file to Supabase Storage
 const uploadFile = async (file, folder, userId) => {
     if (!file || typeof file === 'string' || file.size === 0) return null

@@ -3,6 +3,10 @@ import { signJWT } from '@/lib/auth'
 import { successResponse, errorResponse } from '@/lib/apiResponse'
 import { processReward } from '@/lib/earningEngine'
 
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
+
 export async function POST(request) {
     try {
         const { mobile, otp, role, full_name, gst_number, referral_code, sos_number } = await request.json()

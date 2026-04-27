@@ -1,6 +1,10 @@
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
 import { successResponse, errorResponse } from '@/lib/apiResponse'
 
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
+
 export async function POST(request) {
     try {
         const { mobile, role } = await request.json()

@@ -20,6 +20,10 @@ import { processReward, freezeTransaction } from '@/lib/earningEngine'
 import { checkDeviceFingerprint, logFraudFlag } from '@/lib/antifraud'
 import { getTrustScore } from '@/lib/trustScore'
 
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
+
 const REFERRER_REWARD_PAISE = 1000  // ₹10
 const NEW_USER_REWARD_PAISE = 1000  // ₹10
 const ATTRIBUTION_WINDOW_DAYS = 30

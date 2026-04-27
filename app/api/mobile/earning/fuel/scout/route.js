@@ -11,6 +11,10 @@ import { checkGPS, checkReceiptDuplicate, checkPhotoDuplicate, checkOdometerVali
 import { generatePhotoHash, generateReceiptHash } from '@/lib/hashUtils'
 import { GPS_RADIUS } from '@/lib/geoUtils'
 
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
+
 const REWARD_PAISE = 1000 // ₹10
 
 // Helper: upload file to Supabase Storage

@@ -14,6 +14,10 @@ import { processReward, freezeTransaction } from '@/lib/earningEngine'
 import { checkReceiptDuplicate, checkOdometerValid } from '@/lib/antifraud'
 import { generateReceiptHash } from '@/lib/hashUtils'
 
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
+
 const REWARD_PAISE = 1000 // ₹10
 
 // Helper: upload file

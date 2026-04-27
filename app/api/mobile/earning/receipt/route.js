@@ -14,6 +14,10 @@ import { checkGPS, checkReceiptDuplicate, logFraudFlag } from '@/lib/antifraud'
 import { generateReceiptHash } from '@/lib/hashUtils'
 import { GPS_RADIUS } from '@/lib/geoUtils'
 
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
+
 const REWARD_PAISE = 500 // ₹5
 
 const uploadFile = async (file, folder, userId) => {

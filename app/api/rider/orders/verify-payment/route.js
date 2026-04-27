@@ -3,6 +3,10 @@ import { getUserFromRequest } from '@/lib/auth'
 import { successResponse, errorResponse } from '@/lib/apiResponse'
 import { verifyPaymentSignature } from '@/lib/razorpay'
 
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
+
 // POST — Verify Razorpay payment → confirm order → reduce stock → clear cart
 export async function POST(request) {
     try {

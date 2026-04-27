@@ -3,6 +3,10 @@ import { getUserFromRequest } from '@/lib/auth'
 import { successResponse, errorResponse } from '@/lib/apiResponse'
 import { sendPushNotification } from '@/lib/notificationHelper'
 
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
+
 // GET — Admin views all reviews or reported reviews
 // ?reported=true   → only reported reviews
 // ?status=pending  → filter reports by status (pending/reviewed/dismissed)

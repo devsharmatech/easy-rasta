@@ -11,6 +11,10 @@ import { processReward } from '@/lib/earningEngine'
 import { checkPhotoDuplicate, logFraudFlag } from '@/lib/antifraud'
 import { generatePhotoHash } from '@/lib/hashUtils'
 
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
+
 const REWARD_PAISE = 1000 // ₹10
 
 const uploadFile = async (file, folder, userId) => {

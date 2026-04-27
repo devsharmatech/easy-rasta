@@ -13,6 +13,10 @@ import { successResponse, errorResponse } from '@/lib/apiResponse'
 import { processReward } from '@/lib/earningEngine'
 import { generatePhotoHash } from '@/lib/hashUtils'
 
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
+
 const FULL_PROFILE_PAISE = 1500  // ₹15
 const AMENITY_PAISE = 300         // ₹3
 

@@ -3,6 +3,10 @@ export const maxDuration = 300 // Allow Vercel up to 5 minutes
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
 import { successResponse, errorResponse } from '@/lib/apiResponse'
 
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
+
 const RAPID_API_KEY = process.env.RAPID_API_KEY_V2 || null
 const RAPID_API_HOST = "fuel-petrol-diesel-live-price-india.p.rapidapi.com"
 

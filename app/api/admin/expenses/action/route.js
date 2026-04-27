@@ -2,6 +2,10 @@ import { supabaseAdmin } from '@/lib/supabaseAdmin'
 import { getUserFromRequest } from '@/lib/auth'
 import { successResponse, errorResponse } from '@/lib/apiResponse'
 
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
+
 export async function POST(request) {
     try {
         const admin = getUserFromRequest(request)

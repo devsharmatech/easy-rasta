@@ -7,6 +7,10 @@ import { getUserFromRequest } from '@/lib/auth'
 import { successResponse, errorResponse } from '@/lib/apiResponse'
 import { getEarningSummary } from '@/lib/earningEngine'
 
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
+
 export async function GET(request) {
     try {
         const user = getUserFromRequest(request)

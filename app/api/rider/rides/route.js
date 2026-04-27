@@ -3,6 +3,10 @@ import { getUserFromRequest } from '@/lib/auth'
 import { successResponse, errorResponse } from '@/lib/apiResponse'
 import { awardXP } from '@/lib/xp'
 
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
+
 // GET — Fetch travel history (completed rides)
 export async function GET(request) {
     try {

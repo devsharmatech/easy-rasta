@@ -2,6 +2,10 @@ import { supabaseAdmin } from '@/lib/supabaseAdmin'
 import { verifyAdmin } from '@/lib/auth'
 import { successResponse, errorResponse } from '@/lib/apiResponse'
 
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
+
 export async function GET(request) {
     try {
         // We use the supabaseAdmin directly, but we should secure it.

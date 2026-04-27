@@ -12,6 +12,10 @@ import { processReward } from '@/lib/earningEngine'
 import { checkPhotoDuplicate, logFraudFlag } from '@/lib/antifraud'
 import { generatePhotoHash } from '@/lib/hashUtils'
 
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
+
 const REWARD_PAISE = 500 // ₹5
 const OFFER_EXPIRY_DAYS = 7
 

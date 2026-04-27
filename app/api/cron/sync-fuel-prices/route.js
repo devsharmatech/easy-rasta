@@ -3,6 +3,10 @@ export const maxDuration = 300 // Allow Vercel up to 5 minutes
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
 import { successResponse, errorResponse } from '@/lib/apiResponse'
 
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
+
 const RAPID_API_KEY = process.env.RAPID_API_KEY || "d06f069811msh4d53a50162222c8p168875jsn3d322a6786ff"
 
 // Utility to retry fetches robustly if RapidAPI randomly drops our connection

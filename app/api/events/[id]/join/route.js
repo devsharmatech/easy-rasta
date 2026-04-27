@@ -4,6 +4,10 @@ import { successResponse, errorResponse } from '@/lib/apiResponse'
 import { awardXP } from '@/lib/xp'
 import { createOrder } from '@/lib/razorpay'
 
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
+
 // POST — Join event
 // Free event: joins immediately
 // Paid event: creates Razorpay order, returns order details

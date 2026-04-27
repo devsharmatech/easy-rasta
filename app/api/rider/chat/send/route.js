@@ -3,6 +3,10 @@ import { getUserFromRequest } from '@/lib/auth'
 import { successResponse, errorResponse } from '@/lib/apiResponse'
 import { sendPushNotification } from '@/lib/notificationHelper'
 
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
+
 const uploadFile = async (file, folder, userId) => {
     if (!file || typeof file === 'string' || file.size === 0) return null
     const ext = file.name.split('.').pop()

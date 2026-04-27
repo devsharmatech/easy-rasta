@@ -6,6 +6,9 @@ import crypto from 'crypto'
 const GOOGLE_API_KEY = process.env.GOOGLE_API_KEY || null
 const RAPID_API_KEY = process.env.RAPID_API_KEY || null
 
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
 // Utility to retry fetches if APIs randomly drop connection
 async function fetchWithRetry(url, options = {}, maxRetries = 3) {
     for (let i = 0; i < maxRetries; i++) {
@@ -113,7 +116,7 @@ export async function POST(request) {
                 let pumps = cachedRoute.pumps_data
 
                 // Enrich with prices ONLY for Fuel type
-                if (activeTab === 'Fuel') {
+                if (activeTab.toLowerCase() === 'fuel') {
                     if (pumps.length > 0 && !pumps[0].city) {
                         pumps = await enrichPumpsWithCities(pumps)
                     }
@@ -154,15 +157,15 @@ export async function POST(request) {
 
         // Map activeTab to Google Places type
         const TYPE_MAP = {
-            'Fuel': 'gas_station',
-            'Washroom': 'toilet',
-            'Hotel': 'lodging',
-            'Repair': 'car_repair',
-            'Medical': 'pharmacy',
-            'Food': 'restaurant'
+            'fuel': 'gas_station',
+            'washroom': 'toilet',
+            'hotel': 'lodging',
+            'repair': 'car_repair',
+            'medical': 'pharmacy',
+            'food': 'restaurant'
         }
-        const type = TYPE_MAP[activeTab] || 'gas_station'
-        const useKeywordSearch = activeTab === 'Washroom' // Google doesn't always support 'toilet' as type
+        const type = TYPE_MAP[activeTab.toLowerCase()] || 'gas_station'
+        const useKeywordSearch = activeTab.toLowerCase() === 'washroom' // Google doesn't always support 'toilet' as type
 
         // 4. Find Pumps — CACHE-FIRST approach
         //    Check our local discovered_pumps DB for each sample point first.
@@ -286,7 +289,7 @@ export async function POST(request) {
         let pumps = Array.from(uniquePumps.values())
 
         // 5. Enrich with prices ONLY for Fuel type
-        if (activeTab === 'Fuel') {
+        if (activeTab.toLowerCase() === 'fuel') {
             pumps = await enrichPumpsWithCities(pumps)
             pumps = await enrichPumpsWithLocalPrices(pumps)
         }
@@ -318,6 +321,29 @@ export async function POST(request) {
 
 // --- HELPER FUNCTIONS --- //
 
+const CITY_ALIASES = {
+    'bengaluru': 'bangalore',
+    'bangalore': 'bengaluru',
+    'gurugram': 'gurgaon',
+    'gurgaon': 'gurugram',
+    'mumbai': 'bombay',
+    'bombay': 'mumbai',
+    'chennai': 'madras',
+    'madras': 'chennai',
+    'kolkata': 'calcutta',
+    'calcutta': 'kolkata',
+    'prayagraj': 'allahabad',
+    'allahabad': 'prayagraj',
+    'puducherry': 'pondicherry',
+    'pondicherry': 'puducherry',
+    'thiruvananthapuram': 'trivandrum',
+    'trivandrum': 'thiruvananthapuram',
+    'mysuru': 'mysore',
+    'mysore': 'mysuru',
+    'kochi': 'cochin',
+    'cochin': 'kochi'
+};
+
 async function enrichPumpsWithCities(pumps) {
     // Load ALL known city names from our fuel_prices DB
     const { data: knownCities } = await supabaseAdmin
@@ -346,6 +372,19 @@ async function enrichPumpsWithCities(pumps) {
             if (address.includes(city.toLowerCase())) {
                 matchedCity = city
                 break
+            }
+        }
+
+        // If exact match fails, try resolving through aliases
+        if (!matchedCity) {
+            for (const [alias, canonical] of Object.entries(CITY_ALIASES)) {
+                if (address.includes(alias)) {
+                    const found = cityList.find(c => c.toLowerCase() === canonical)
+                    if (found) {
+                        matchedCity = found
+                        break
+                    }
+                }
             }
         }
 
@@ -396,6 +435,11 @@ async function enrichPumpsWithLocalPrices(pumps) {
 
             // 1. Try exact match first
             matchedPrice = pricesByCity.get(pumpCity)
+
+            // 1b. Try alias match
+            if (!matchedPrice && CITY_ALIASES[pumpCity]) {
+                matchedPrice = pricesByCity.get(CITY_ALIASES[pumpCity])
+            }
 
             // 2. Try partial match (e.g., "New Delhi" contains "Delhi")
             if (!matchedPrice) {

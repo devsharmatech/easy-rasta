@@ -4,6 +4,10 @@ import { successResponse, errorResponse } from '@/lib/apiResponse'
 import { verifyPaymentSignature } from '@/lib/razorpay'
 import { awardXP } from '@/lib/xp'
 
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
+
 // POST — Verify Razorpay payment and complete event join
 export async function POST(request, { params }) {
     try {

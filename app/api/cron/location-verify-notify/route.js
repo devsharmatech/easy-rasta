@@ -13,6 +13,10 @@ import { supabaseAdmin } from '@/lib/supabaseAdmin'
 import { successResponse, errorResponse } from '@/lib/apiResponse'
 import { calculateDistance } from '@/lib/geoUtils'
 
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
+
 const NOTIFY_RADIUS_KM = 2
 const COOLDOWN_HOURS = 24
 

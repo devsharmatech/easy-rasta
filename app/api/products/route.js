@@ -1,6 +1,10 @@
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
 import { successResponse, errorResponse } from '@/lib/apiResponse'
 
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
+
 // GET — Browse products (public)
 // ?id=UUID      → single product detail
 // ?category=xxx → filter by category
