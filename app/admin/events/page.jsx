@@ -87,14 +87,24 @@ export default function EventsPage() {
 
     const handleBulkRefund = async (status) => {
         if (selectedParticipants.length === 0) return
-        if (!confirm(`Are you sure you want to mark ${selectedParticipants.length} selected records as ${status}?`)) return
+        
+        const isProcessed = status === 'processed'
+        const msg = isProcessed 
+            ? `Are you sure you want to mark ${selectedParticipants.length} selected records as REFUNDED? This will also trigger the actual Razorpay refund reversal.`
+            : `Are you sure you want to mark ${selectedParticipants.length} selected records as ${status}?`
+
+        if (!confirm(msg)) return
 
         setBulkProcessing(true)
         try {
             const res = await fetch('/api/admin/events', {
                 method: 'POST',
                 headers: { ...headers, 'Content-Type': 'application/json' },
-                body: JSON.stringify({ participation_ids: selectedParticipants, status })
+                body: JSON.stringify({ 
+                    participation_ids: selectedParticipants, 
+                    status,
+                    trigger_refund: isProcessed // Trigger Razorpay if marking as processed
+                })
             })
             if (!res.ok) throw new Error()
             toast.success(`Successfully updated ${selectedParticipants.length} records`)

@@ -237,7 +237,7 @@ export async function POST(request) {
         }
 
         const body = await request.json()
-        const { participation_ids, status } = body
+        const { participation_ids, status, trigger_refund } = body
 
         if (!Array.isArray(participation_ids) || !['processed', 'rejected', 'approved'].includes(status)) {
             return NextResponse.json({ error: 'Invalid input' }, { status: 400 })
@@ -245,7 +245,11 @@ export async function POST(request) {
 
         const { data: participations, error: fetchError } = await supabaseAdmin
             .from('event_participants')
-            .select('id, payment_id')
+            .select(`
+                id, 
+                payment_id,
+                event_payments:payment_id(amount, razorpay_payment_id)
+            `)
             .in('id', participation_ids)
 
         if (fetchError) throw fetchError
@@ -258,9 +262,29 @@ export async function POST(request) {
 
         if (updateError) throw updateError
 
-        // If processed, update payments
+        // If processed, update payments and optionally trigger Razorpay
         if (status === 'processed') {
             const paymentIds = participations.map(p => p.payment_id).filter(Boolean)
+            
+            // Trigger Razorpay Refunds if requested
+            if (trigger_refund) {
+                const { refundPayment } = await import('@/lib/razorpay')
+                for (const p of participations) {
+                    if (p.event_payments?.razorpay_payment_id && p.event_payments?.amount) {
+                        try {
+                            await refundPayment(
+                                p.event_payments.razorpay_payment_id, 
+                                p.event_payments.amount,
+                                { reason: 'Admin approved cancellation refund' }
+                            )
+                        } catch (rzpErr) {
+                            console.error(`[Razorpay Refund Error for ${p.id}]`, rzpErr)
+                            // We continue even if one fails
+                        }
+                    }
+                }
+            }
+
             if (paymentIds.length > 0) {
                 await supabaseAdmin
                     .from('event_payments')
