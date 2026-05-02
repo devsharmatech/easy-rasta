@@ -40,6 +40,7 @@ export async function GET(request) {
                 .from('event_participants')
                 .select(`
                     id, vehicle_id, consent_safety, consent_liability, payment_id, joined_at,
+                    is_cancelled, cancellation_reason, cancelled_at, refund_eligible, refund_status,
                     rider_profiles:rider_id(
                         id, user_id, total_rides, level,
                         users:user_id(full_name, email, mobile, profile_image_url)
@@ -77,6 +78,11 @@ export async function GET(request) {
                     joined_at: p.joined_at,
                     consent_safety: p.consent_safety,
                     consent_liability: p.consent_liability,
+                    is_cancelled: p.is_cancelled,
+                    cancellation_reason: p.cancellation_reason,
+                    cancelled_at: p.cancelled_at,
+                    refund_eligible: p.refund_eligible,
+                    refund_status: p.refund_status,
                     rider: p.rider_profiles ? {
                         id: p.rider_profiles.id,
                         user_id: p.rider_profiles.user_id,
@@ -218,6 +224,55 @@ export async function PUT(request) {
 
         return NextResponse.json(data)
     } catch (err) {
+        return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 })
+    }
+}
+
+// POST — Bulk update refund status
+export async function POST(request) {
+    try {
+        const user = getUserFromRequest(request)
+        if (!user || user.role !== 'admin') {
+            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+        }
+
+        const body = await request.json()
+        const { participation_ids, status } = body
+
+        if (!Array.isArray(participation_ids) || !['processed', 'rejected', 'approved'].includes(status)) {
+            return NextResponse.json({ error: 'Invalid input' }, { status: 400 })
+        }
+
+        const { data: participations, error: fetchError } = await supabaseAdmin
+            .from('event_participants')
+            .select('id, payment_id')
+            .in('id', participation_ids)
+
+        if (fetchError) throw fetchError
+
+        // Update participations
+        const { error: updateError } = await supabaseAdmin
+            .from('event_participants')
+            .update({ refund_status: status })
+            .in('id', participation_ids)
+
+        if (updateError) throw updateError
+
+        // If processed, update payments
+        if (status === 'processed') {
+            const paymentIds = participations.map(p => p.payment_id).filter(Boolean)
+            if (paymentIds.length > 0) {
+                await supabaseAdmin
+                    .from('event_payments')
+                    .update({ status: 'refunded' })
+                    .in('id', paymentIds)
+            }
+        }
+
+        return NextResponse.json({ success: true, message: `Bulk updated ${participation_ids.length} records to ${status}` })
+
+    } catch (err) {
+        console.error(err)
         return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 })
     }
 }

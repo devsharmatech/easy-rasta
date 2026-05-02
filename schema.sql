@@ -336,6 +336,8 @@ CREATE TABLE events (
     event_type event_type DEFAULT 'free',
     fee numeric DEFAULT 0,
     status event_status DEFAULT 'draft',
+    cancellation_policy_type varchar DEFAULT 'default',
+    cancellation_window_hours int DEFAULT 48,
     created_at timestamptz DEFAULT now()
 );
 
@@ -358,6 +360,11 @@ CREATE TABLE event_participants (
     consent_liability boolean DEFAULT false,
     payment_id uuid,  -- References event_payments.id
     joined_at timestamptz DEFAULT now(),
+    is_cancelled boolean DEFAULT false,
+    cancellation_reason text,
+    cancelled_at timestamptz,
+    refund_eligible boolean DEFAULT false,
+    refund_status varchar DEFAULT 'none', -- none, pending, processed, rejected
     UNIQUE(event_id, rider_id)
 );
 

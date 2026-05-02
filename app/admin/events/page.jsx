@@ -15,10 +15,12 @@ import {
 import {
     Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '@/components/ui/table'
+import { Checkbox } from '@/components/ui/checkbox'
 import {
     Calendar, MapPin, Users, Clock, X, Map, Search, Eye, RefreshCw, Loader2,
     IndianRupee, Bike, Trophy, Shield, ChevronRight, ExternalLink,
-    CheckCircle, XCircle, CreditCard, Route, Navigation, Gauge, Mountain
+    CheckCircle, XCircle, CreditCard, Route, Navigation, Gauge, Mountain,
+    AlertCircle, Undo2
 } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -34,6 +36,10 @@ export default function EventsPage() {
     const [detailEvent, setDetailEvent] = useState(null)
     const [detailLoading, setDetailLoading] = useState(false)
     const [activeTab, setActiveTab] = useState('overview')
+
+    // Bulk selection for refunds
+    const [selectedParticipants, setSelectedParticipants] = useState([])
+    const [bulkProcessing, setBulkProcessing] = useState(false)
 
     const token = typeof window !== 'undefined' ? localStorage.getItem('adminToken') : null
     const headers = { 'Authorization': `Bearer ${token}` }
@@ -55,6 +61,7 @@ export default function EventsPage() {
         setDetailLoading(true)
         setDetailEvent(null)
         setActiveTab('overview')
+        setSelectedParticipants([])
         try {
             const res = await fetch(`/api/admin/events?id=${eventId}`, { headers })
             if (!res.ok) throw new Error()
@@ -76,6 +83,46 @@ export default function EventsPage() {
             fetchEvents()
             if (detailEvent?.id === id) fetchEventDetail(id)
         } catch { toast.error('Failed to update status') }
+    }
+
+    const handleBulkRefund = async (status) => {
+        if (selectedParticipants.length === 0) return
+        if (!confirm(`Are you sure you want to mark ${selectedParticipants.length} selected records as ${status}?`)) return
+
+        setBulkProcessing(true)
+        try {
+            const res = await fetch('/api/admin/events', {
+                method: 'POST',
+                headers: { ...headers, 'Content-Type': 'application/json' },
+                body: JSON.stringify({ participation_ids: selectedParticipants, status })
+            })
+            if (!res.ok) throw new Error()
+            toast.success(`Successfully updated ${selectedParticipants.length} records`)
+            setSelectedParticipants([])
+            fetchEventDetail(detailEvent.id)
+        } catch {
+            toast.error('Bulk update failed')
+        } finally {
+            setBulkProcessing(false)
+        }
+    }
+
+    const toggleParticipantSelection = (id) => {
+        setSelectedParticipants(prev =>
+            prev.includes(id) ? prev.filter(p => p !== id) : [...prev, id]
+        )
+    }
+
+    const selectAllRefundable = () => {
+        const refundableIds = detailEvent.participants
+            .filter(p => p.is_cancelled && p.refund_eligible && p.refund_status === 'pending')
+            .map(p => p.id)
+        
+        if (selectedParticipants.length === refundableIds.length) {
+            setSelectedParticipants([])
+        } else {
+            setSelectedParticipants(refundableIds)
+        }
     }
 
     // Filtering
@@ -101,6 +148,16 @@ export default function EventsPage() {
             case 'closed': return 'bg-red-50 text-red-700 border-red-200'
             case 'draft': return 'bg-amber-50 text-amber-700 border-amber-200'
             default: return 'bg-gray-50 text-gray-700 border-gray-200'
+        }
+    }
+
+    const refundStatusColor = (status) => {
+        switch (status) {
+            case 'processed': return 'bg-green-100 text-green-800'
+            case 'pending': return 'bg-amber-100 text-amber-800 animate-pulse'
+            case 'approved': return 'bg-blue-100 text-blue-800'
+            case 'rejected': return 'bg-red-100 text-red-800'
+            default: return 'bg-gray-100 text-gray-800'
         }
     }
 
@@ -458,7 +515,36 @@ export default function EventsPage() {
 
                                 {/* ─── PARTICIPANTS TAB ─── */}
                                 {activeTab === 'participants' && (
-                                    <div className="space-y-3">
+                                    <div className="space-y-4">
+                                        {/* Bulk Actions Header */}
+                                        {selectedParticipants.length > 0 && (
+                                            <div className="bg-orange-50 border border-orange-200 rounded-xl p-3 flex items-center justify-between animate-in slide-in-from-top-2">
+                                                <div className="flex items-center gap-2 text-sm font-semibold text-orange-800">
+                                                    <AlertCircle className="h-4 w-4" />
+                                                    {selectedParticipants.length} selected for Refund
+                                                </div>
+                                                <div className="flex gap-2">
+                                                    <Button 
+                                                        size="sm" 
+                                                        onClick={() => handleBulkRefund('processed')} 
+                                                        disabled={bulkProcessing}
+                                                        className="bg-green-600 hover:bg-green-700 text-white gap-2"
+                                                    >
+                                                        {bulkProcessing ? <Loader2 className="h-3 w-3 animate-spin" /> : <CreditCard className="h-3 w-3" />} 
+                                                        Mark as Refunded
+                                                    </Button>
+                                                    <Button 
+                                                        size="sm" 
+                                                        variant="ghost"
+                                                        onClick={() => setSelectedParticipants([])}
+                                                        className="text-gray-500"
+                                                    >
+                                                        Cancel
+                                                    </Button>
+                                                </div>
+                                            </div>
+                                        )}
+
                                         {detailEvent.participants?.length > 0 ? (
                                             <>
                                                 {/* Desktop table */}
@@ -466,16 +552,30 @@ export default function EventsPage() {
                                                     <Table>
                                                         <TableHeader>
                                                             <TableRow className="bg-gray-50/50">
+                                                                <TableHead className="w-[50px]">
+                                                                    <Checkbox 
+                                                                        checked={selectedParticipants.length > 0 && selectedParticipants.length === detailEvent.participants.filter(p => p.is_cancelled && p.refund_eligible && p.refund_status === 'pending').length}
+                                                                        onCheckedChange={selectAllRefundable}
+                                                                    />
+                                                                </TableHead>
                                                                 <TableHead className="text-xs font-semibold">Rider</TableHead>
                                                                 <TableHead className="text-xs font-semibold">Vehicle</TableHead>
-                                                                <TableHead className="text-xs font-semibold">Payment</TableHead>
-                                                                <TableHead className="text-xs font-semibold">Consents</TableHead>
-                                                                <TableHead className="text-xs font-semibold">Joined</TableHead>
+                                                                <TableHead className="text-xs font-semibold">Payment / Status</TableHead>
+                                                                <TableHead className="text-xs font-semibold">Cancellation Info</TableHead>
+                                                                <TableHead className="text-xs font-semibold text-right">Refund Status</TableHead>
                                                             </TableRow>
                                                         </TableHeader>
                                                         <TableBody>
                                                             {detailEvent.participants.map((p) => (
-                                                                <TableRow key={p.id} className="text-sm">
+                                                                <TableRow key={p.id} className={`text-sm ${p.is_cancelled ? 'bg-red-50/30' : ''}`}>
+                                                                    <TableCell>
+                                                                        {p.is_cancelled && p.refund_eligible && p.refund_status === 'pending' ? (
+                                                                            <Checkbox 
+                                                                                checked={selectedParticipants.includes(p.id)}
+                                                                                onCheckedChange={() => toggleParticipantSelection(p.id)}
+                                                                            />
+                                                                        ) : <div className="w-4" />}
+                                                                    </TableCell>
                                                                     <TableCell>
                                                                         <div className="flex items-center gap-2.5">
                                                                             <Avatar className="h-8 w-8">
@@ -486,53 +586,46 @@ export default function EventsPage() {
                                                                             </Avatar>
                                                                             <div>
                                                                                 <p className="text-xs font-semibold">{p.rider?.full_name || 'Unknown'}</p>
-                                                                                <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
-                                                                                    {p.rider?.mobile && <span>{p.rider.mobile}</span>}
-                                                                                    {p.rider?.email && <span className="truncate max-w-[120px]">{p.rider.email}</span>}
-                                                                                </div>
-                                                                                <div className="flex items-center gap-2 text-[10px] text-muted-foreground mt-0.5">
-                                                                                    <span className="flex items-center gap-0.5"><Trophy className="h-2.5 w-2.5 text-amber-500" /> Lv{p.rider?.level || 1}</span>
-                                                                                    <span className="flex items-center gap-0.5"><Bike className="h-2.5 w-2.5 text-blue-500" /> {p.rider?.total_rides || 0} rides</span>
-                                                                                </div>
+                                                                                <p className="text-[10px] text-muted-foreground">{p.rider?.mobile}</p>
                                                                             </div>
                                                                         </div>
                                                                     </TableCell>
                                                                     <TableCell>
-                                                                        {p.vehicle ? (
-                                                                            <div className="flex items-center gap-2">
-                                                                                {p.vehicle.image_url && (
-                                                                                    <div className="h-8 w-8 rounded bg-gray-100 overflow-hidden flex-shrink-0">
-                                                                                        <img src={p.vehicle.image_url} alt="" className="h-full w-full object-cover" />
-                                                                                    </div>
-                                                                                )}
-                                                                                <div>
-                                                                                    <p className="text-xs font-medium">{p.vehicle.nickname || `${p.vehicle.make} ${p.vehicle.model}`}</p>
-                                                                                    <p className="text-[10px] text-muted-foreground capitalize">{p.vehicle.type}</p>
-                                                                                </div>
-                                                                            </div>
-                                                                        ) : (
-                                                                            <span className="text-xs text-muted-foreground">—</span>
-                                                                        )}
-                                                                    </TableCell>
-                                                                    <TableCell>
+                                                                        <p className="text-xs font-medium">{p.vehicle?.nickname || 'No Vehicle'}</p>
                                                                         {p.payment ? (
-                                                                            <div>
-                                                                                <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full border capitalize ${p.payment.status === 'paid' ? 'bg-green-50 text-green-700 border-green-200' : p.payment.status === 'failed' ? 'bg-red-50 text-red-700 border-red-200' : 'bg-amber-50 text-amber-700 border-amber-200'}`}>
-                                                                                    ₹{p.payment.amount} • {p.payment.status}
-                                                                                </span>
-                                                                            </div>
-                                                                        ) : (
-                                                                            <span className="text-[10px] font-medium px-2 py-0.5 rounded-full border bg-green-50 text-green-700 border-green-200">Free</span>
-                                                                        )}
+                                                                            <span className={`text-[10px] ${p.payment.status === 'paid' ? 'text-green-600' : 'text-red-500'}`}>
+                                                                                ₹{p.payment.amount} • {p.payment.status}
+                                                                            </span>
+                                                                        ) : <span className="text-[10px] text-green-600">Free</span>}
                                                                     </TableCell>
                                                                     <TableCell>
-                                                                        <div className="flex items-center gap-1.5">
-                                                                            <span title="Safety Consent">{p.consent_safety ? <CheckCircle className="h-3.5 w-3.5 text-green-500" /> : <XCircle className="h-3.5 w-3.5 text-red-400" />}</span>
-                                                                            <span title="Liability Consent">{p.consent_liability ? <Shield className="h-3.5 w-3.5 text-green-500" /> : <Shield className="h-3.5 w-3.5 text-red-400" />}</span>
-                                                                        </div>
+                                                                        {p.is_cancelled ? (
+                                                                            <div className="space-y-0.5">
+                                                                                <p className="text-xs font-medium text-red-600 flex items-center gap-1">
+                                                                                    <XCircle className="h-3 w-3" /> Cancelled
+                                                                                </p>
+                                                                                <p className="text-[10px] text-gray-500 italic line-clamp-1" title={p.cancellation_reason}>"{p.cancellation_reason}"</p>
+                                                                                <p className="text-[9px] text-gray-400">{formatDateTime(p.cancelled_at)}</p>
+                                                                            </div>
+                                                                        ) : (
+                                                                            <div className="flex items-center gap-1.5">
+                                                                                <span title="Safety Consent">{p.consent_safety ? <CheckCircle className="h-3.5 w-3.5 text-green-500" /> : <XCircle className="h-3.5 w-3.5 text-red-400" />}</span>
+                                                                                <span title="Liability Consent">{p.consent_liability ? <Shield className="h-3.5 w-3.5 text-green-500" /> : <Shield className="h-3.5 w-3.5 text-red-400" />}</span>
+                                                                                <span className="text-[10px] text-gray-400">{formatDate(p.joined_at)}</span>
+                                                                            </div>
+                                                                        )}
                                                                     </TableCell>
-                                                                    <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
-                                                                        {formatDateTime(p.joined_at)}
+                                                                    <TableCell className="text-right">
+                                                                        {p.is_cancelled && (
+                                                                            <div className="space-y-1">
+                                                                                <Badge variant="outline" className={`text-[10px] uppercase font-bold py-0 h-5 ${refundStatusColor(p.refund_status)}`}>
+                                                                                    {p.refund_status}
+                                                                                </Badge>
+                                                                                {!p.refund_eligible && p.refund_status === 'none' && (
+                                                                                    <p className="text-[9px] text-red-400 font-medium italic">Not Eligible</p>
+                                                                                )}
+                                                                            </div>
+                                                                        )}
                                                                     </TableCell>
                                                                 </TableRow>
                                                             ))}
@@ -543,9 +636,16 @@ export default function EventsPage() {
                                                 {/* Mobile cards */}
                                                 <div className="sm:hidden space-y-2.5">
                                                     {detailEvent.participants.map((p) => (
-                                                        <div key={p.id} className="border rounded-xl p-3 space-y-2.5">
+                                                        <div key={p.id} className={`border rounded-xl p-3 space-y-2.5 ${p.is_cancelled ? 'bg-red-50/30' : ''}`}>
                                                             {/* Rider header */}
                                                             <div className="flex items-center gap-2.5">
+                                                                {p.is_cancelled && p.refund_eligible && p.refund_status === 'pending' && (
+                                                                    <Checkbox 
+                                                                        checked={selectedParticipants.includes(p.id)}
+                                                                        onCheckedChange={() => toggleParticipantSelection(p.id)}
+                                                                        className="mr-1"
+                                                                    />
+                                                                )}
                                                                 <Avatar className="h-10 w-10">
                                                                     <AvatarImage src={p.rider?.profile_image_url || ''} />
                                                                     <AvatarFallback className="text-xs bg-orange-100 text-orange-700 font-bold">
@@ -554,35 +654,31 @@ export default function EventsPage() {
                                                                 </Avatar>
                                                                 <div className="flex-1 min-w-0">
                                                                     <p className="text-sm font-semibold">{p.rider?.full_name || 'Unknown'}</p>
-                                                                    <div className="flex items-center gap-2 text-[10px] text-muted-foreground flex-wrap">
-                                                                        {p.rider?.mobile && <span>📞 {p.rider.mobile}</span>}
-                                                                        <span className="flex items-center gap-0.5"><Trophy className="h-2.5 w-2.5 text-amber-500" /> Lv{p.rider?.level || 1}</span>
-                                                                        <span className="flex items-center gap-0.5"><Bike className="h-2.5 w-2.5 text-blue-500" /> {p.rider?.total_rides || 0}</span>
-                                                                    </div>
+                                                                    <p className="text-[10px] text-muted-foreground">{p.rider?.mobile}</p>
                                                                 </div>
-                                                            </div>
-                                                            {/* Vehicle + Payment row */}
-                                                            <div className="flex items-center justify-between gap-2">
-                                                                <div className="flex items-center gap-1.5 text-xs text-gray-600 min-w-0">
-                                                                    <Bike className="h-3.5 w-3.5 text-gray-400 flex-shrink-0" />
-                                                                    <span className="truncate">{p.vehicle ? (p.vehicle.nickname || `${p.vehicle.make} ${p.vehicle.model}`) : 'No vehicle'}</span>
-                                                                </div>
-                                                                {p.payment ? (
-                                                                    <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full border capitalize whitespace-nowrap ${p.payment.status === 'paid' ? 'bg-green-50 text-green-700 border-green-200' : 'bg-amber-50 text-amber-700 border-amber-200'}`}>
-                                                                        ₹{p.payment.amount} • {p.payment.status}
-                                                                    </span>
-                                                                ) : (
-                                                                    <span className="text-[10px] font-medium px-2 py-0.5 rounded-full border bg-green-50 text-green-700 border-green-200">Free</span>
+                                                                {p.is_cancelled && (
+                                                                    <Badge className={`text-[9px] h-5 ${refundStatusColor(p.refund_status)}`}>
+                                                                        {p.refund_status}
+                                                                    </Badge>
                                                                 )}
                                                             </div>
+                                                            {/* Cancellation reason if any */}
+                                                            {p.is_cancelled && (
+                                                                <div className="bg-white/50 rounded-lg p-2 border border-red-100">
+                                                                    <p className="text-[10px] text-red-700 font-semibold mb-0.5 flex items-center gap-1">
+                                                                        <XCircle className="h-3 w-3" /> Cancellation Reason:
+                                                                    </p>
+                                                                    <p className="text-[11px] text-gray-700 italic">"{p.cancellation_reason}"</p>
+                                                                </div>
+                                                            )}
                                                             {/* Footer */}
                                                             <div className="flex items-center justify-between text-[10px] text-muted-foreground pt-1 border-t">
                                                                 <div className="flex items-center gap-1.5">
-                                                                    <span title="Safety">{p.consent_safety ? <CheckCircle className="h-3 w-3 text-green-500" /> : <XCircle className="h-3 w-3 text-red-400" />}</span>
-                                                                    <span title="Liability">{p.consent_liability ? <Shield className="h-3 w-3 text-green-500" /> : <Shield className="h-3 w-3 text-red-400" />}</span>
-                                                                    <span>Consents</span>
+                                                                    <span>{p.payment ? `₹${p.payment.amount}` : 'Free'}</span>
+                                                                    <span>•</span>
+                                                                    <span className="truncate max-w-[100px]">{p.vehicle?.nickname || 'No Vehicle'}</span>
                                                                 </div>
-                                                                <span>{formatDateTime(p.joined_at)}</span>
+                                                                <span>{formatDate(p.is_cancelled ? p.cancelled_at : p.joined_at)}</span>
                                                             </div>
                                                         </div>
                                                     ))}

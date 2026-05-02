@@ -33,6 +33,10 @@ export async function GET(request) {
                 consent_liability,
                 payment_id,
                 joined_at,
+                is_cancelled,
+                cancellation_reason,
+                cancelled_at,
+                refund_eligible,
                 vehicles(nickname, type, make, model, image_url),
                 events(
                     *,
@@ -66,6 +70,10 @@ export async function GET(request) {
             return {
                 participation_id: p.id,
                 joined_at: p.joined_at,
+                is_cancelled: p.is_cancelled,
+                cancellation_reason: p.cancellation_reason,
+                cancelled_at: p.cancelled_at,
+                refund_eligible: p.refund_eligible,
                 vehicle: p.vehicles ? {
                     nickname: p.vehicles.nickname,
                     type: p.vehicles.type,

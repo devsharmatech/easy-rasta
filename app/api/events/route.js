@@ -66,6 +66,8 @@ export async function POST(request) {
         const route_image_file = formData.get('route_image')
         const featured_image_file = formData.get('featured_image')
         const stopsStr = formData.get('stops')
+        const cancellation_policy_type = formData.get('cancellation_policy_type') || 'default'
+        const cancellation_window_hours = formData.get('cancellation_window_hours')
 
         if (!title || !date) return errorResponse('Title and date are required', 400)
         
@@ -99,7 +101,9 @@ export async function POST(request) {
                 total_distance: total_distance ? parseFloat(total_distance) : null,
                 event_type: event_type || 'free',
                 fee: fee ? parseFloat(fee) : 0,
-                status: 'published'
+                status: 'published',
+                cancellation_policy_type,
+                cancellation_window_hours: cancellation_window_hours ? parseInt(cancellation_window_hours) : (cancellation_policy_type === 'default' ? 48 : null)
             })
             .select()
             .single()
@@ -185,6 +189,8 @@ export async function PUT(request) {
         const route_image_file = formData.get('route_image')
         const featured_image_file = formData.get('featured_image')
         const stopsStr = formData.get('stops')
+        const cancellation_policy_type = formData.get('cancellation_policy_type')
+        const cancellation_window_hours = formData.get('cancellation_window_hours')
 
         if (fee && fee !== 'null' && fee !== 'undefined' && fee.trim() !== '') {
             const parsedFee = parseFloat(fee)
@@ -216,6 +222,9 @@ export async function PUT(request) {
         // Only update images if new files uploaded
         if (route_image) updateFields.route_image = route_image
         if (featured_image) updateFields.featured_image = featured_image
+
+        if (cancellation_policy_type) updateFields.cancellation_policy_type = cancellation_policy_type
+        if (cancellation_window_hours) updateFields.cancellation_window_hours = parseInt(cancellation_window_hours)
 
         const { data, error } = await supabaseAdmin
             .from('events')
@@ -327,6 +336,10 @@ export async function GET(request) {
                     consent_liability,
                     payment_id,
                     joined_at,
+                    is_cancelled,
+                    cancellation_reason,
+                    cancelled_at,
+                    refund_eligible,
                     vehicles(nickname, type, make, model, image_url),
                     events(
                         *,
@@ -362,6 +375,10 @@ export async function GET(request) {
                 return {
                     participation_id: p.id,
                     joined_at: p.joined_at,
+                    is_cancelled: p.is_cancelled,
+                    cancellation_reason: p.cancellation_reason,
+                    cancelled_at: p.cancelled_at,
+                    refund_eligible: p.refund_eligible,
                     vehicle: p.vehicles ? {
                         nickname: p.vehicles.nickname,
                         type: p.vehicles.type,
@@ -404,6 +421,7 @@ export async function GET(request) {
                 rider_profiles!events_rider_id_fkey(user_id, total_rides, level, xp, users!rider_profiles_user_id_fkey(full_name, profile_image_url)),
                 event_participants(
                     rider_id,
+                    is_cancelled,
                     rider_profiles!event_participants_rider_id_fkey(
                         user_id,
                         users!rider_profiles_user_id_fkey(id, full_name, profile_image_url)
@@ -446,14 +464,17 @@ export async function GET(request) {
             // Using rest pattern to exclude old references from output
             const { rider_profiles, event_participants, ...rest } = event
             
-            const joiners = (event_participants || []).map(p => ({
+            // Filter out cancelled participants for public view
+            const activeParticipants = (event_participants || []).filter(p => !p.is_cancelled)
+
+            const joiners = activeParticipants.map(p => ({
                 id: p.rider_id,
                 name: p.rider_profiles?.users?.full_name || 'Unknown Rider',
                 profile_image: p.rider_profiles?.users?.profile_image_url || null
             }))
 
             const is_user_already_joined = currentRiderProfileId 
-                ? (event_participants || []).some(p => p.rider_id === currentRiderProfileId)
+                ? activeParticipants.some(p => p.rider_id === currentRiderProfileId)
                 : false
 
             return {
