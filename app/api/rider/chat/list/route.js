@@ -98,6 +98,7 @@ export async function GET(request) {
                         event_id,
                         rider_id,
                         joined_at,
+                        is_cancelled,
                         rider_profiles!event_participants_rider_id_fkey(
                             user_id,
                             users!rider_profiles_user_id_fkey(
@@ -137,7 +138,8 @@ export async function GET(request) {
                             id: p.rider_id,
                             name: p.rider_profiles?.users?.full_name || 'Unknown Rider',
                             profile_image: p.rider_profiles?.users?.profile_image_url || null,
-                            joined_at: p.joined_at
+                            joined_at: p.joined_at,
+                            is_cancelled: p.is_cancelled
                         },
                         last_message: lastMessage ? {
                             content: lastMessage.message_type === 'image' ? '📸 Image' : lastMessage.content,
@@ -158,11 +160,12 @@ export async function GET(request) {
                 return successResponse('Organizer participants chat list fetched successfully', participantList)
             }
         } else if (role === 'participant') {
-            // Get events joined by participant
+            // Get events joined by participant (Exclude cancelled ones from main list)
             const { data: joinedEvents, error: jErr } = await supabaseAdmin
                 .from('event_participants')
-                .select('event_id, joined_at')
+                .select('event_id, joined_at, is_cancelled')
                 .eq('rider_id', riderProfile.id)
+                .eq('is_cancelled', false)
 
             if (jErr) throw jErr;
 

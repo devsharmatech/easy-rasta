@@ -37,12 +37,13 @@ export async function GET(request) {
             .order('created_at', { ascending: false })
             .limit(5)
 
-        // 4. Upcoming joined events (next 3)
+        // 4. Upcoming joined events (next 3) - Filter out cancelled ones
         const today = new Date().toISOString().split('T')[0]
         const { data: upcomingEvents } = await supabaseAdmin
             .from('event_participants')
-            .select('joined_at, events(id, title, date, time, meeting_lat, meeting_long, ride_type, featured_image)')
+            .select('joined_at, is_cancelled, events(id, title, date, time, meeting_lat, meeting_long, ride_type, featured_image)')
             .eq('rider_id', profile.id)
+            .eq('is_cancelled', false)
             .gte('events.date', today)
             .order('joined_at', { ascending: false })
             .limit(3)

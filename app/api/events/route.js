@@ -473,13 +473,20 @@ export async function GET(request) {
                 profile_image: p.rider_profiles?.users?.profile_image_url || null
             }))
 
-            const is_user_already_joined = currentRiderProfileId 
-                ? activeParticipants.some(p => p.rider_id === currentRiderProfileId)
-                : false
+            const user_participation = currentRiderProfileId 
+                ? (event_participants || []).find(p => p.rider_id === currentRiderProfileId)
+                : null
+
+            const user_participation_status = user_participation
+                ? (user_participation.is_cancelled ? 'cancelled' : 'joined')
+                : 'none'
+
+            const is_user_already_joined = user_participation_status === 'joined'
 
             return {
                 ...rest,
                 is_user_already_joined,
+                user_participation_status,
                 joiners,
                 organizer: {
                     name: rider_profiles?.users?.full_name || 'Unknown',

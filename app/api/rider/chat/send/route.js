@@ -85,13 +85,13 @@ export async function POST(request) {
         // (If participant, they must have joined. If organizer, the target must have joined.)
         const { data: participation } = await supabaseAdmin
             .from('event_participants')
-            .select('id')
+            .select('id, is_cancelled')
             .eq('event_id', event_id)
             .eq('rider_id', targetParticipantId)
             .single()
 
-        if (!participation) {
-            return errorResponse('Invalid participant for this event', 403)
+        if (!participation || participation.is_cancelled) {
+            return errorResponse('Chat is disabled for cancelled bookings.', 403)
         }
 
         let sentContent = content;
