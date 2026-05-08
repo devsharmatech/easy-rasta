@@ -1,6 +1,7 @@
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
 import { getUserFromRequest } from '@/lib/auth'
 import { successResponse, errorResponse } from '@/lib/apiResponse'
+import { calculateDistance } from '@/lib/geoUtils'
 import crypto from 'crypto'
 
 const GOOGLE_API_KEY = process.env.GOOGLE_API_KEY || null
@@ -58,20 +59,66 @@ function decodePolyline(encoded) {
     return poly
 }
 
-// Sub-sample points to prevent hitting Nearby Search too many times (e.g. every 10km)
-function sampleRoutePoints(points, distanceKm = 10) {
+// Sub-sample points along the polyline at regular intervals (e.g. every 7km)
+function sampleRoutePoints(points, intervalKm = 7) {
     if (points.length === 0) return []
+    
     const sampled = [points[0]]
-    // Simple sampling logic (could be improved with Haversine distance tracking)
-    const step = Math.max(1, Math.floor(points.length / 10)) // Max 10 points along route
-    for (let i = step; i < points.length; i += step) {
-        sampled.push(points[i])
+    let lastSampledPoint = points[0]
+    let cumulativeDistance = 0
+
+    for (let i = 1; i < points.length; i++) {
+        const d = calculateDistance(
+            lastSampledPoint.latitude, lastSampledPoint.longitude,
+            points[i].latitude, points[i].longitude
+        ) / 1000 // Convert to km
+
+        if (d >= intervalKm) {
+            sampled.push(points[i])
+            lastSampledPoint = points[i]
+        }
     }
-    // Always include destination
-    if (sampled[sampled.length - 1] !== points[points.length - 1]) {
-        sampled.push(points[points.length - 1])
+
+    // Always include destination if not already sampled
+    const lastPoint = points[points.length - 1]
+    const distToLast = calculateDistance(
+        lastSampledPoint.latitude, lastSampledPoint.longitude,
+        lastPoint.latitude, lastPoint.longitude
+    ) / 1000
+
+    if (distToLast > 1) { // If more than 1km away, add destination
+        sampled.push(lastPoint)
     }
+
     return sampled
+}
+
+/**
+ * Filter pumps to only those within a certain distance of the actual route polyline.
+ * This solves the issue of showing pumps that are too far from the path.
+ */
+function filterPumpsByRoute(pumps, polyline, maxDistanceKm = 3) {
+    if (pumps.length === 0) return []
+    
+    // Sub-sample the polyline for distance checking to save thousands of calculations
+    // Every 1km or every 5th point is more than enough for a 3km corridor
+    const filterPolyline = polyline.filter((_, index) => index % 5 === 0 || index === polyline.length - 1)
+
+    return pumps.filter(pump => {
+        let minDistance = Infinity
+        
+        for (let i = 0; i < filterPolyline.length; i++) {
+            const d = calculateDistance(
+                pump.latitude, pump.longitude,
+                filterPolyline[i].latitude, filterPolyline[i].longitude
+            ) / 1000
+
+            if (d < minDistance) minDistance = d
+            if (d < 1) return true // Fast-path: if within 1km, keep it immediately
+        }
+        
+        return minDistance <= maxDistanceKm
+    })
 }
 
 export async function POST(request) {
@@ -153,7 +200,7 @@ export async function POST(request) {
         }
 
         const points = decodePolyline(directions.routes[0].overview_polyline.points)
-        const samplePoints = sampleRoutePoints(points)
+        const samplePoints = sampleRoutePoints(points, 12) // Sample every 12km to reduce API calls
 
         // Map activeTab to Google Places type
         const TYPE_MAP = {
@@ -288,14 +335,35 @@ export async function POST(request) {
 
         let pumps = Array.from(uniquePumps.values())
 
-        // 5. Enrich with prices ONLY for Fuel type
+        // 4d. Filter out pumps that are too far from the actual route (Corridor Filter)
+        // Optimized to sub-sample polyline internally
+        pumps = filterPumpsByRoute(pumps, points, 3)
+
+        // 5. Enrich with prices and reviews IN PARALLEL
+        const enrichmentTasks = []
+        
         if (activeTab.toLowerCase() === 'fuel') {
-            pumps = await enrichPumpsWithCities(pumps)
-            pumps = await enrichPumpsWithLocalPrices(pumps)
+            enrichmentTasks.push(
+                enrichPumpsWithCities(pumps).then(p => enrichPumpsWithLocalPrices(p))
+            )
+        } else {
+            enrichmentTasks.push(Promise.resolve(pumps))
         }
 
-        // 6. Attach user reviews for all place types
-        pumps = await enrichPumpsWithReviews(pumps)
+        enrichmentTasks.push(enrichPumpsWithReviews(pumps))
+
+        const [enrichedPumps, reviewsEnriched] = await Promise.all(enrichmentTasks)
+        
+        // Merge the results
+        pumps = enrichedPumps.map(pump => {
+            const reviewData = reviewsEnriched.find(r => r.place_id === pump.place_id)
+            return {
+                ...pump,
+                platform_reviews: reviewData?.platform_reviews || [],
+                platform_avg_rating: reviewData?.platform_avg_rating || null,
+                platform_reviews_count: reviewData?.platform_reviews_count || 0
+            }
+        })
 
         // 8. Cache this calculated route for future users!
         await supabaseAdmin.from('route_pumps_cache').insert({
@@ -379,14 +447,26 @@ async function enrichPumpsWithCities(pumps) {
     return pumps.map(pump => {
         const address = (pump.address || '').toLowerCase()
         let matchedCity = null
+        let lastFoundIndex = -1
 
         const escapeRegExp = (string) => string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 
         for (const { term, canonical } of searchTerms) {
-            const regex = new RegExp(`\\b${escapeRegExp(term)}\\b`, 'i')
-            if (regex.test(address)) {
-                matchedCity = canonical
-                break
+            const regex = new RegExp(`(?:^|[\\s,])\\b${escapeRegExp(term)}\\b(?:$|[\\s,]|\\d{6})`, 'i')
+            const match = address.match(regex)
+            
+            if (match) {
+                // Check for false positives like "Salem Road" or "Salem Hotel"
+                const falsePositiveRegex = new RegExp(`\\b${escapeRegExp(term)}\\b\\s+(?:hotel|restaurant|road|main|cross|street|avenue|link)`, 'i')
+                if (!falsePositiveRegex.test(address)) {
+                    // Store the match index. In Indian addresses, the actual city 
+                    // usually appears towards the end of the address string.
+                    const matchIndex = match.index
+                    if (matchIndex > lastFoundIndex) {
+                        lastFoundIndex = matchIndex
+                        matchedCity = canonical
+                    }
+                }
             }
         }
 

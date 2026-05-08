@@ -394,7 +394,8 @@ export async function GET(request) {
                     } : null,
                     event: p.events ? {
                         ...p.events,
-                        is_user_already_joined: true,
+                        is_user_already_joined: !p.is_cancelled,
+                        is_user_cancelled: p.is_cancelled,
                         rider_profiles: undefined,
                         organizer: {
                             name: p.events.rider_profiles?.users?.full_name || 'Unknown',
@@ -482,10 +483,12 @@ export async function GET(request) {
                 : 'none'
 
             const is_user_already_joined = user_participation_status === 'joined'
+            const is_user_cancelled = user_participation_status === 'cancelled'
 
             return {
                 ...rest,
                 is_user_already_joined,
+                is_user_cancelled,
                 user_participation_status,
                 joiners,
                 organizer: {
