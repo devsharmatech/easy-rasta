@@ -17,9 +17,7 @@ async function fetchWithRetry(url, options = {}, maxRetries = 3) {
             const res = await fetch(url, { ...options, signal: controller.signal })
             clearTimeout(id)
             if (res.ok) return res
-            console.log(`[Retry] Attempt ${i + 1}/${maxRetries} failed with status ${res.status}`)
         } catch (error) {
-            console.log(`[Retry] Attempt ${i + 1}/${maxRetries} error: ${error.message}`)
         }
         await new Promise(resolve => setTimeout(resolve, 2000 * Math.pow(2, i)))
     }
@@ -107,7 +105,6 @@ export async function POST(request) {
         // If no pumps found locally (or force_refresh), fetch from Google Places
         if (uniquePumps.size === 0 || force_refresh) {
             fetchedFromGoogle = true
-            console.log(`[Nearby] Calling Google API for point: ${centerLat},${centerLng}`)
 
             const url = useKeywordSearch
                 ? `https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=${centerLat},${centerLng}&radius=${radius}&keyword=public+toilet+washroom&key=${GOOGLE_API_KEY}`
@@ -189,7 +186,6 @@ export async function POST(request) {
         })
 
     } catch (err) {
-        console.error(err)
         return errorResponse('Internal Server Error', 500)
     }
 }
@@ -244,17 +240,84 @@ async function enrichPumpsWithCities(pumps) {
     // Sort all terms by length descending to match longest possible names first
     searchTerms.sort((a, b) => b.term.length - a.term.length)
 
+    const GOOGLE_KEY = process.env.GOOGLE_API_KEY;
+    const escapeRegExp = (string) => string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+    // Group pumps by ~11km grid (1 decimal place of lat/lng) to drastically reduce Google API calls
+    const gridMap = new Map();
+    for (const pump of pumps) {
+        const gridKey = `${(Math.round(pump.latitude * 10) / 10).toFixed(1)},${(Math.round(pump.longitude * 10) / 10).toFixed(1)}`;
+        if (!gridMap.has(gridKey)) {
+            gridMap.set(gridKey, {
+                latitude: pump.latitude,
+                longitude: pump.longitude
+            });
+        }
+    }
+
+    // Call Geocoding API ONCE per 11km grid
+    const gridPromises = Array.from(gridMap.entries()).map(async ([key, grid]) => {
+        let matchedCity = null;
+
+        try {
+            const geoUrl = `https://maps.googleapis.com/maps/api/geocode/json?latlng=${grid.latitude},${grid.longitude}&key=${GOOGLE_KEY}`;
+            const geoRes = await fetchWithRetry(geoUrl, {}, 2).then(r => r.json());
+
+            if (geoRes.results && geoRes.results.length > 0) {
+                let candidates = [];
+                for (let comp of geoRes.results[0].address_components) {
+                    if (comp.types.includes('locality') || 
+                        comp.types.includes('administrative_area_level_3') || 
+                        comp.types.includes('administrative_area_level_2')) {
+                        candidates.push(comp.long_name.toLowerCase());
+                    }
+                }
+
+                for (const candidate of candidates) {
+                    for (const { term, canonical } of searchTerms) {
+                        const regex = new RegExp(`(?:^|[\\s,])\\b${escapeRegExp(term)}\\b`, 'i');
+                        if (regex.test(candidate)) {
+                            matchedCity = canonical;
+                            break;
+                        }
+                    }
+                    if (matchedCity) break;
+                }
+            }
+        } catch (err) {
+            // Silently ignore geo errors
+        }
+        
+        return { key, matchedCity };
+    });
+
+    const gridResults = await Promise.all(gridPromises);
+    const cityByGrid = new Map();
+    for (const res of gridResults) {
+        cityByGrid.set(res.key, res.matchedCity);
+    }
+
+    // Map the results back to individual pumps
     return pumps.map(pump => {
-        const address = (pump.address || '').toLowerCase()
-        let matchedCity = null
+        const gridKey = `${(Math.round(pump.latitude * 10) / 10).toFixed(1)},${(Math.round(pump.longitude * 10) / 10).toFixed(1)}`;
+        let matchedCity = cityByGrid.get(gridKey);
 
-        const escapeRegExp = (string) => string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-
-        for (const { term, canonical } of searchTerms) {
-            const regex = new RegExp(`\\b${escapeRegExp(term)}\\b`, 'i')
-            if (regex.test(address)) {
-                matchedCity = canonical
-                break
+        // Fallback to address string scanning if Google API failed or missed
+        if (!matchedCity) {
+            const address = (pump.address || '').toLowerCase();
+            let lastFoundIndex = -1;
+            for (const { term, canonical } of searchTerms) {
+                const regex = new RegExp(`(?:^|[\\s,])\\b${escapeRegExp(term)}\\b(?:$|[\\s,]|\\d{6})`, 'i');
+                const match = address.match(regex);
+                if (match) {
+                    const falsePositiveRegex = new RegExp(`\\b${escapeRegExp(term)}\\b\\s+(?:hotel|restaurant|road|main|cross|street|avenue|link)`, 'i');
+                    if (!falsePositiveRegex.test(address)) {
+                        if (match.index > lastFoundIndex) {
+                            lastFoundIndex = match.index;
+                            matchedCity = canonical;
+                        }
+                    }
+                }
             }
         }
 
@@ -263,8 +326,8 @@ async function enrichPumpsWithCities(pumps) {
             city: matchedCity,
             district: null,
             state: null
-        }
-    })
+        };
+    });
 }
 
 async function enrichPumpsWithLocalPrices(pumps) {
